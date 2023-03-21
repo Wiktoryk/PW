@@ -5,6 +5,8 @@ VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PW", "PW\PW.csproj", "{CACF5F98-2B27-4ECD-B879-D4DFF29CDC6A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PWTests", "PWTests\PWTests.csproj", "{61B5294F-4648-4938-A62F-DCE5CF6F98F5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{CACF5F98-2B27-4ECD-B879-D4DFF29CDC6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CACF5F98-2B27-4ECD-B879-D4DFF29CDC6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CACF5F98-2B27-4ECD-B879-D4DFF29CDC6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61B5294F-4648-4938-A62F-DCE5CF6F98F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61B5294F-4648-4938-A62F-DCE5CF6F98F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61B5294F-4648-4938-A62F-DCE5CF6F98F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61B5294F-4648-4938-A62F-DCE5CF6F98F5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
