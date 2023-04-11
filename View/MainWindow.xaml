@@ -1,0 +1,42 @@
+﻿<Window x:Class="View.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModel="clr-namespace:ViewModel;assembly=ViewModel"
+        xmlns:local="clr-namespace:View"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="700" Width="900">
+    <Grid>
+        <Grid.DataContext>
+            <viewModel:ViewModelAPI/>
+        </Grid.DataContext>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="800"/>
+            <ColumnDefinition Width="100"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBox HorizontalAlignment="Center" Margin="0,16,0,0" TextWrapping="Wrap" Text="{Binding LicznoscKul, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="70" Height="18" Grid.Column="1"/>
+        <Button Content="Start" HorizontalAlignment="Center" Margin="0,51,0,0" VerticalAlignment="Top" Width="70" Height="25" Grid.Column="1" Command="{Binding SygnalWlacz}" IsEnabled="{Binding CzyWlaczone}"/>
+        <Button Content="Stop" HorizontalAlignment="Center" Margin="0,81,0,0" VerticalAlignment="Top" Width="70" Height="25" Command="{Binding SygnalWylacz}" Grid.Column="1" IsEnabled="{Binding CzyWylaczone, Mode=OneWay}"/>
+
+        <ItemsControl Width="750" Height="600" ItemsSource="{Binding ListaKul}" Margin="25,25,25,59">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas Width="750" Height="600" Background="#FFAB5151"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                    <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Ellipse Height="{Binding Promien}" Width="{Binding Promien}" Stroke="BlueViolet" Fill="DarkGreen"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</Window>

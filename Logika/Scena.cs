@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Dane
+namespace Logika
 {
     public class Scena
     {
@@ -31,28 +31,22 @@ namespace Dane
             get { return kule; }
         }
 
-        public Scena(int szerokosc, int wysokosc, int licznoscKul, int promienKul)
+        public Scena(int szerokosc, int wysokosc)
         {
             this.szerokosc = szerokosc;
             this.wysokosc = wysokosc;
-            WygenerujListeKul(licznoscKul, promienKul);
         }
 
-        public Kula WygenerujKule(int promien)
-        {
-            Random random = new Random();
-            int x = random.Next(promien, this.szerokosc - promien);
-            int y = random.Next(promien, this.wysokosc - promien);
-            return new Kula(x, y,promien);
-        }
 
-        public void WygenerujListeKul(int licznoscKul,int promienKul)
+        public void WygenerujListeKul(int licznoscKul, int promienKul)
         {
             kule.Clear();
+            Random random = new Random();
             for (int i = 0; i < licznoscKul; i++)
             {
-                Kula kula = WygenerujKule(promienKul);
-                this.kule.Add(kula);
+                int x = random.Next(promienKul, this.szerokosc - promienKul);
+                int y = random.Next(promienKul, this.wysokosc - promienKul);
+                this.kule.Add(new Kula(x,y,promienKul));
             }
         }
     }
