@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
 using Logika;
 
 namespace Model
 {
     public abstract class ModelAPIAbstrakcyjne
     {
-        public static ModelAPIAbstrakcyjne StworzAPI(LogikaAPIAbstrakcyjne logikaAPIAbstrakcyjne = null)
+        public static ModelAPIAbstrakcyjne StworzAPI(LogikaAPIAbstrakcyjne logikaAPIAbstrakcyjne)
         {
             return new ModelApi();
         }
@@ -37,7 +35,7 @@ namespace Model
             {
                 if (logikaAPIAbstrakcyjne == null)
                 {
-                    this.logikaApi = LogikaAPIAbstrakcyjne.StworzAPI();
+                    this.logikaApi = LogikaAPIAbstrakcyjne.StworzAPI(null);
                 }
                 else
                 {

@@ -1,15 +1,12 @@
 ﻿using Dane;
 using System;
-using System.Collections.Generic;
-using System.Threading;
 using static Logika.LogikaAPIAbstrakcyjne;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace Logika
 {
     public abstract class LogikaAPIAbstrakcyjne
     {
-        public static LogikaAPIAbstrakcyjne StworzAPI(DaneAPIAbstrakcyjne daneAPIAbstrakcyjne = null)
+        public static LogikaAPIAbstrakcyjne StworzAPI(DaneAPIAbstrakcyjne daneAPIAbstrakcyjne)
         {
             return new LogikaAPI(daneAPIAbstrakcyjne);
         }
@@ -57,8 +54,8 @@ namespace Logika
                         while (this.scena.Wlaczona)
                         {
                             Random random = new Random();
-                            newX = random.Next(1, 101);
-                            newY = random.Next(1, 101);
+                            newX = random.Next(1, 750);
+                            newY = random.Next(1, 600);
                             if(newX<scena.Szerokosc)
                             {
                                 kula.X = newX;

@@ -1,10 +1,8 @@
 ﻿using Model;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Windows.Input;
 
 namespace ViewModel
@@ -51,13 +49,13 @@ namespace ViewModel
         }
 
         public ViewModelAPI() : this(null) { }
-        public ViewModelAPI(ModelAPIAbstrakcyjne modelAPI = null)
+        public ViewModelAPI(ModelAPIAbstrakcyjne modelAPI)
         {
             SygnalWlacz = new Sygnal(Wlacz);
             SygnalWylacz = new Sygnal(Wylacz);
             if (modelAPI == null)
             {
-                this.modelAPI = ModelAPIAbstrakcyjne.StworzAPI();
+                this.modelAPI = ModelAPIAbstrakcyjne.StworzAPI(null);
             }
             else
             {

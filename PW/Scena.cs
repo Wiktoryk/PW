@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Dane
 {
@@ -41,8 +39,8 @@ namespace Dane
         public Kula WygenerujKule(int promien)
         {
             Random random = new Random();
-            int x = random.Next(promien, this.szerokosc - promien);
-            int y = random.Next(promien, this.wysokosc - promien);
+            int x = random.Next(5, this.szerokosc - 5);
+            int y = random.Next(5, this.wysokosc - 5);
             return new Kula(x, y,promien);
         }
 

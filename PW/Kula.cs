@@ -47,11 +47,11 @@ namespace Dane
             }
         }
 
-        public void rusz()
+        public void rusz(Scena scena)
         {
             Random random = new Random();
-            this.X = random.Next(1, 101);
-            this.Y += random.Next(1, 101);
+            this.X = random.Next(1, scena.Szerokosc);
+            this.Y = random.Next(1, scena.Wysokosc);
             OnPropertyChanged("Position");
         }
 

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Threading;
-using System.Collections.Generic;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace Dane
 {
@@ -48,7 +45,7 @@ namespace Dane
                         {
                             lock (locked)
                             {
-                                kula.rusz();
+                                kula.rusz(scena);
                             }
 
                             Thread.Sleep(5);
