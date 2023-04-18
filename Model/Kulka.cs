@@ -1,76 +1,48 @@
 ﻿using Logika;
+using System.Numerics;
 using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Model
 {
-    public class Kulka : INotifyPropertyChanged
+    public class KulkaModel
     {
-        private double x;
-        private double y;
-        private double promien;
+        private readonly Kula kulka;
 
-        public Kulka(Kula kula)
+        public KulkaModel(Kula _kulka)
         {
-            this.x = kula.X;
-            this.y = kula.Y;
-            this.promien = kula.Promien;
-            kula.PropertyChanged += Update;
+            this.kulka = _kulka;
         }
 
-        private void Update(object source, PropertyChangedEventArgs key)
-        {
-            Kula sourceKula = (Kula)source;
-            if (key.PropertyName == "X")
-            {
-                this.x = sourceKula.X - sourceKula.Promien;
-            }
-            if (key.PropertyName == "Y")
-            {
-                this.y = sourceKula.Y - sourceKula.Promien;
-            }
-            if (key.PropertyName == "Radius")
-            {
-                this.promien = sourceKula.Promien;
-            }
+        public int Srednica => kulka.Srednica;
+        public Logika.Vector2 Pozycja => kulka.Pozycja;
+        public Logika.Vector2 Szybkosc => kulka.Szybkosc;
+    }
+    public class WalidatorKulek : InterfaceValidator<int>
+    {
+        private readonly int min;
+        private readonly int max;
 
+        public WalidatorKulek(int min, int max)
+        {
+            this.min = min;
+            this.max = max;
         }
 
-        public double X
-        {
-            get { return x; }
-            set
-            {
-                x = value;
-                OnPropertyChanged("X");
-            }
-        }
+        public WalidatorKulek() : this(Int32.MinValue) { }
 
-        public double Y
-        {
-            get { return y; }
-            set
-            {
-                y = value;
-                OnPropertyChanged("Y");
-            }
-        }
+        public WalidatorKulek(int min) : this(min, Int32.MaxValue) { }
 
-        public double Promien
+        public bool IsValid(int val)
         {
-            get { return promien; }
-            set
-            {
-                promien = value;
-                OnPropertyChanged("Radius");
-            }
+            return val.IsBetween(min, max);
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
-        {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
+    }
+    public interface InterfaceValidator<T>
+    {
+        bool IsValid(T value);
     }
 }

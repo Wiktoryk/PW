@@ -1,69 +1,30 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Dane
 {
-    public abstract class DaneAPIAbstrakcyjne
+    public abstract class DaneAbstractApi
     {
-        public abstract void StworzScene(int szerokosc, int wysokosc, int licznoscKul, int promienKul);
-        public abstract List<Kula> PobierzKule();
-        public abstract void Wylacz();
+        public abstract int WysokoscSceny { get; }
+        public abstract int SzerokoscSceny { get; }
+        public abstract int SrednicaKuli { get; }
 
-        public abstract Scena Scena { get; }
-        public static DaneAPIAbstrakcyjne StworzAPI()
+
+        public static DaneAbstractApi StworzDaneApi()
         {
-            return new DaneAPI();
+            return new DaneApi();
         }
+    }
+    public class DaneApi : DaneAbstractApi
+    {
+        //ustawiamy tutaj parametry
+        public override int WysokoscSceny { get; } = 200;
 
-        internal sealed class DaneAPI : DaneAPIAbstrakcyjne
-        {
-            private readonly object locked = new object();
-            private bool wlaczone = false;
-            private Scena scena;
+        public override int SzerokoscSceny { get; } = 350;
 
-            public bool Wlaczone
-            {
-                get { return wlaczone; }
-                set { wlaczone = value; }
-            }
-
-            public override Scena Scena
-            {
-                get { return scena; }
-            }
-
-            public override void StworzScene(int szerokosc, int wysokosc, int licznoscKul, int promienKul)
-            {
-                this.scena = new Scena(szerokosc, wysokosc, licznoscKul, promienKul);
-                this.Wlaczone = true;
-                List<Kula> kule = PobierzKule();
-
-                foreach (Kula kula in kule)
-                {
-                    Thread t = new Thread(() =>
-                    {
-                        while (this.Wlaczone)
-                        {
-                            lock (locked)
-                            {
-                                kula.rusz(scena);
-                            }
-
-                            Thread.Sleep(5);
-                        }
-                    });
-                    t.Start();
-                }
-            }
-
-            public override List<Kula> PobierzKule()
-            {
-                return Scena.Kule;
-            }
-
-            public override void Wylacz()
-            {
-                this.Wlaczone = false;
-            }
-        }
+        public override int SrednicaKuli { get; } = 20;
     }
 }

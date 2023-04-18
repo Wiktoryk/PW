@@ -1,96 +1,43 @@
 ﻿using Dane;
 using System;
-using static Logika.LogikaAPIAbstrakcyjne;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Logika
 {
-    public abstract class LogikaAPIAbstrakcyjne
+    public abstract class LogikaAbstractApi : IObservable<IEnumerable<Kula>>
     {
-        public static LogikaAPIAbstrakcyjne StworzAPI(DaneAPIAbstrakcyjne daneAPIAbstrakcyjne)
+        public abstract IEnumerable<Kula> Kule { get; }
+
+        public abstract void GenerowanieKul(int liczba_kul);
+        public abstract void Sim();
+        public abstract void StartSim();
+        public abstract void StopSim();
+
+        public abstract IDisposable Subscribe(IObserver<IEnumerable<Kula>> observer);
+
+        public static LogikaAbstractApi StworzLogikaApi(DaneAbstractApi? dane = default)
         {
-            return new LogikaAPI(daneAPIAbstrakcyjne);
-        }
-
-        public abstract void StworzScene(int szerokosc, int wysokosc, int licznoscKul, int promienKul);
-
-        public abstract List<Kula> PobierzKule();
-
-        public abstract void Wlacz();
-
-        public abstract void Wylacz();
-
-        public abstract bool CzyWlaczone();
-
-        internal sealed class LogikaAPI : LogikaAPIAbstrakcyjne
-        {
-            private DaneAPIAbstrakcyjne daneApi;
-
-            private Scena scena;
-            private DaneAPIAbstrakcyjne daneAPIAbstrakcyjne;
-
-            public LogikaAPI(DaneAPIAbstrakcyjne daneAPIAbstrakcyjne)
-            {
-                if (daneAPIAbstrakcyjne == null)
-                {
-                    this.daneApi = DaneAPIAbstrakcyjne.StworzAPI();
-                }
-                else
-                {
-                    this.daneApi = daneAPIAbstrakcyjne;
-                }
-            }
-
-            public override void StworzScene(int szerokosc, int wysokosc, int licznoscKul, int promienKul)
-            {
-                this.scena = new Scena(szerokosc, wysokosc);
-                scena.WygenerujListeKul(licznoscKul, promienKul);
-                foreach (Kula kula in scena.Kule)
-                {
-                    Thread thread = new Thread(() =>
-                    {
-                        int newX;
-                        int newY;
-
-                        while (this.scena.Wlaczona)
-                        {
-                            Random random = new Random();
-                            newX = random.Next(1, 750);
-                            newY = random.Next(1, 600);
-                            if(newX<scena.Szerokosc)
-                            {
-                                kula.X = newX;
-                            }
-                            if(newY<scena.Wysokosc)
-                            {
-                                kula.Y = newY;
-                            }
-                            Thread.Sleep(15);
-                        }
-                    });
-                    thread.Start();
-                }
-            }
-
-            public override List<Kula> PobierzKule()
-            {
-                return scena.Kule;
-            }
-
-            public override void Wlacz()
-            {
-                this.scena.Wlaczona = true;
-            }
-
-            public override void Wylacz()
-            {
-                this.scena.Wlaczona = false;
-            }
-
-            public override bool CzyWlaczone()
-            {
-                return this.scena.Wlaczona;
-            }
+            return new SimKontroler(dane ?? DaneAbstractApi.StworzDaneApi());
         }
     }
+    public static class Extension
+    {
+        public static bool IsBetween(this int val, int min, int max)
+        {
+            return val >= min && val <= max;
+        }
 
+        public static bool IsBetween(this float val, float min, float max, float pad = 0f)
+        {
+            if (pad < 0f)
+            {
+                throw new ArgumentException("Argument pad musi mieć wartość dodatnią!", nameof(pad));
+            }
+
+            return (val - pad >= min) && (val + pad <= max);
+        }
+    }
 }

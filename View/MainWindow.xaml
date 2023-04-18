@@ -3,40 +3,54 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:viewModel="clr-namespace:ViewModel;assembly=ViewModel"
-        xmlns:local="clr-namespace:View"
+        xmlns:local="clr-namespace:View" xmlns:viewmodel="clr-namespace:ViewModel;assembly=ViewModel"
         mc:Ignorable="d"
-        Title="MainWindow" Height="700" Width="900">
-    <Grid>
-        <Grid.DataContext>
-            <viewModel:ViewModelAPI/>
-        </Grid.DataContext>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="800"/>
-            <ColumnDefinition Width="100"/>
-        </Grid.ColumnDefinitions>
+        Title="MainWindow" Height="450" Width="800">
+    <Window.DataContext>
+        <viewmodel:ViewModelMain/>
+    </Window.DataContext>
+    <Grid Margin="0,-1,0,1">
 
-        <TextBox HorizontalAlignment="Center" Margin="0,16,0,0" TextWrapping="Wrap" Text="{Binding LicznoscKul, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="70" Height="18" Grid.Column="1"/>
-        <Button Content="Start" HorizontalAlignment="Center" Margin="0,51,0,0" VerticalAlignment="Top" Width="70" Height="25" Grid.Column="1" Command="{Binding SygnalWlacz}" IsEnabled="{Binding CzyWlaczone}"/>
-        <Button Content="Stop" HorizontalAlignment="Center" Margin="0,81,0,0" VerticalAlignment="Top" Width="70" Height="25" Command="{Binding SygnalWylacz}" Grid.Column="1" IsEnabled="{Binding CzyWylaczone, Mode=OneWay}"/>
-
-        <ItemsControl Width="750" Height="600" ItemsSource="{Binding ListaKul}" Margin="25,25,25,59">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <Canvas Width="750" Height="600" Background="#FFAB5151"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemContainerStyle>
-                <Style TargetType="ContentPresenter">
-                    <Setter Property="Canvas.Left" Value="{Binding X}"/>
-                    <Setter Property="Canvas.Top" Value="{Binding Y}"/>
-                </Style>
-            </ItemsControl.ItemContainerStyle>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Ellipse Height="{Binding Promien}" Width="{Binding Promien}" Stroke="BlueViolet" Fill="DarkGreen"/>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <Button Content="Start" HorizontalAlignment="Left" Margin="564,10,0,0" VerticalAlignment="Top" Height="102" Width="226" Command="{Binding thisViewModel.SimStartCommand}"/>
+        <Button Content="Stop" HorizontalAlignment="Left" Margin="564,117,0,0" VerticalAlignment="Top" Height="102" Width="226" Command="{Binding thisViewModel.SimStopCommand}"/>
+        <TextBox HorizontalAlignment="Left" Margin="617,240,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="{Binding thisViewModel.LiczbaKulek}"/>
+        <Border BorderBrush="#0000FF" BorderThickness="3" Margin="0,28,251,126" Width="356" Height="206">
+            <ItemsControl ItemsSource="{Binding thisViewModel.Kulki}" Margin="0,0,0,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas Name="BallSpace" Margin="0,0,0,0" Width="350" Height="200" RenderTransformOrigin="0.5,0.5">
+                            <Canvas.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform ScaleY="-1"/>
+                                    <SkewTransform/>
+                                    <RotateTransform/>
+                                    <TranslateTransform/>
+                                </TransformGroup>
+                            </Canvas.RenderTransform>
+                            <Canvas.Background>
+                                <SolidColorBrush Color="#FFFACD"/>
+                            </Canvas.Background>
+                        </Canvas>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style>
+                        <Setter Property="Canvas.Left" Value="{Binding Pozycja.X}"/>
+                        <Setter Property="Canvas.Top" Value="{Binding Pozycja.Y}"/>
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Ellipse Height="{Binding Srednica}"
+                                 Width="{Binding Srednica}"
+                                  Margin="0, 0, 0, 0">
+                            <Ellipse.Fill>
+                                <SolidColorBrush Color="#00FF00"/>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
     </Grid>
 </Window>

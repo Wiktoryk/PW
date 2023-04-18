@@ -1,57 +1,61 @@
 ﻿using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Numerics;
+using System.Text;
+using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace Logika
 {
-    public class Kula : INotifyPropertyChanged
+    public class Kula : IEquatable<Kula>
     {
-        private double x;
-        private double y;
-        private double promien;
+        public int Srednica { get; init; }
 
-        public Kula(double x, double y, double promien)
+        public Vector2 Szybkosc { get; set; }
+        public Vector2 Pozycja { get; set; }
+
+
+        public Kula(int srednica, Vector2 szybkosc, Vector2 pozycja)
         {
-            this.x = x;
-            this.y = y;
-            this.promien = promien;
+            Srednica = srednica;
+            Szybkosc = szybkosc;
+            Pozycja = pozycja;
         }
 
-        public double X //property
+        public void Poruszanie(Vector2 granicaX, Vector2 granicaY)
         {
-            get { return x; }
-            set
+
+            if (Szybkosc.CzyZero())
             {
-                x = value;
-                OnPropertyChanged("X");
+                return;
             }
-        }
 
-        public double Y
-        {
-            get { return y; }
-            set
+            Pozycja += Szybkosc;
+
+            var (pozX, pozY) = Pozycja;
+
+
+            if (!pozX.IsBetween(granicaX.X-20, granicaX.Y, Srednica))
             {
-                y = value;
-                OnPropertyChanged("Y");
+                Szybkosc = new Vector2(-Szybkosc.X, Szybkosc.Y);
             }
-        }
-
-        public double Promien
-        {
-            get { return promien; }
-            set
+            if (!pozY.IsBetween(granicaY.X - 20, granicaY.Y, Srednica))
             {
-                promien = value;
-                OnPropertyChanged("Radius");
+                Szybkosc = new Vector2(Szybkosc.X, -Szybkosc.Y);
             }
+
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
+        //wymagane do interfejsu equatable
+        public bool Equals(Kula? other)
         {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            return other is not null
+                && Srednica == other.Srednica
+                && Pozycja == other.Pozycja
+                && Szybkosc == other.Szybkosc;
         }
+
     }
 }
