@@ -1,43 +1,61 @@
 ﻿using Dane;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Logika
 {
-    public abstract class LogikaAbstractApi : IObservable<IEnumerable<Kula>>
+    public abstract class LogikaApiBase : IDisposable
     {
-        public abstract IEnumerable<Kula> Kule { get; }
+        public abstract IEnumerable<IKula> Balls { get; }
+        public abstract double ScenaWidth { get; set; }
+        public abstract double ScenaHeight { get; set; }
 
-        public abstract void GenerowanieKul(int liczba_kul);
-        public abstract void Sim();
-        public abstract void StartSim();
-        public abstract void StopSim();
+        public abstract void StworzKule(uint ballsNum, double minSzybkosc, double maxSzybkosc);
+        public abstract void StartSimulation();
+        public abstract void StopSimulation();
 
-        public abstract IDisposable Subscribe(IObserver<IEnumerable<Kula>> observer);
+        public abstract void Dispose();
 
-        public static LogikaAbstractApi StworzLogikaApi(DaneAbstractApi? dane = default)
+        public static LogikaApiBase GetApi(DaneApiBase? dane = null)
         {
-            return new SimKontroler(dane ?? DaneAbstractApi.StworzDaneApi());
+            return new LogikaApi(dane ?? DaneApiBase.GetApi());
         }
     }
-    public static class Extension
+    internal class LogikaApi : LogikaApiBase
     {
-        public static bool IsBetween(this int val, int min, int max)
+        public override IEnumerable<IKula> Balls => simManager.Kule;
+        public override double ScenaWidth { get => simManager.ScenaWidth; set => simManager.ScenaWidth = value; }
+        public override double ScenaHeight { get => simManager.ScenaHeight; set => simManager.ScenaHeight = value; }
+
+        private readonly SimulationManager simManager;
+        private readonly DaneApiBase dane;
+
+        public LogikaApi(DaneApiBase? dane)
         {
-            return val >= min && val <= max;
+            this.dane = dane ?? DaneApiBase.GetApi();
+            this.simManager = new SimulationManager(this.dane.StworzScene(0, 0));
         }
 
-        public static bool IsBetween(this float val, float min, float max, float pad = 0f)
+        public override void StworzKule(uint ballsNum, double minSzybkosc, double maxSzybkosc)
         {
-            if (pad < 0f)
-            {
-                throw new ArgumentException("Argument pad musi mieć wartość dodatnią!", nameof(pad));
-            }
+            simManager.ClearBalls();
+            simManager.StworzKule(ballsNum, minSzybkosc, maxSzybkosc);
+        }
 
-            return (val - pad >= min) && (val + pad <= max);
+        public override void StartSimulation()
+        {
+            simManager.StartSimulation();
+        }
+
+        public override void StopSimulation()
+        {
+            simManager.StopSimulation();
+        }
+
+        public override void Dispose()
+        {
+            simManager.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

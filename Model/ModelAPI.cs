@@ -1,140 +1,70 @@
-﻿using Logika;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Reflection.PortableExecutable;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Windows.Media;
+using Dane;
+using Logika;
 
 namespace Model
 {
-    public abstract class ApiModel : IObserver<IEnumerable<Kula>>, IObservable<IEnumerable<KulkaModel>>
+    public abstract class ModelApiBase : IDisposable
     {
-        public abstract void GenerowanieKul(int liczba_kulek);
+        public abstract ObservableCollection<IKulaModel> Balls { get; }
+        public abstract double ScenaWidth { get; set; }
+        public abstract double ScenaHeight { get; set; }
+
+        public abstract void GenerateBalls(uint ballsNum, double minRadius, double maxRadius, double minVel, double maxVel);
+
         public abstract void Start();
         public abstract void Stop();
 
+        public abstract void Dispose();
 
-        public abstract void OnCompleted();
-        public abstract void OnError(Exception error);
-        public abstract void OnNext(IEnumerable<Kula> val);
-        public abstract IDisposable Subscribe(IObserver<IEnumerable<KulkaModel>> obs);
-
-        public static ApiModel StworzModelApi(LogikaAbstractApi? logika = default)
+        public static ModelApiBase GetApi(LogikaApiBase? logika = default)
         {
-            return new Model(logika ?? LogikaAbstractApi.StworzLogikaApi());
+            return new ModelApi(logika ?? LogikaApiBase.GetApi());
         }
     }
-    public class Model : ApiModel
+    internal class ModelApi : ModelApiBase
     {
-        private readonly ISet<IObserver<IEnumerable<KulkaModel>>> observers;
-        private IDisposable? unsubscriber;
-        private readonly LogikaAbstractApi logika;      //checklist1
+        private ObservableCollection<IKulaModel> _balls;
+        public override ObservableCollection<IKulaModel> Balls => _balls;
+        public override double ScenaWidth { get => logika.ScenaWidth; set => logika.ScenaWidth = value; }
+        public override double ScenaHeight { get => logika.ScenaHeight; set => logika.ScenaHeight = value; }
 
-        public Model(LogikaAbstractApi? logika = default)
+        private readonly LogikaApiBase logika;
+
+        public ModelApi(LogikaApiBase? logika = default)
         {
-            this.logika = logika ?? LogikaAbstractApi.StworzLogikaApi();
-            observers = new HashSet<IObserver<IEnumerable<KulkaModel>>>();
-            Subscribe(logika);
+            this.logika = logika ?? LogikaApiBase.GetApi();
+            this._balls = new ObservableCollection<IKulaModel>();
         }
 
-
-        public override void GenerowanieKul(int liczba_kulek)
+        public override void GenerateBalls(uint ballsNum, double minRadius, double maxRadius, double minVel, double maxVel)
         {
-            logika.GenerowanieKul(liczba_kulek);
+            this.logika.StworzKule(ballsNum, minVel, maxVel);
+            this._balls = new ObservableCollection<IKulaModel>();
+            Random rnd = new();
+            foreach (IKula ball in this.logika.Balls)
+            {
+                Brush color = new SolidColorBrush(Color.FromRgb((byte)rnd.Next(256), (byte)rnd.Next(256), (byte)rnd.Next(256)));
+                this._balls.Add(new KulaModel(ball));
+            }
         }
 
         public override void Start()
         {
-            logika.StartSim();
+            this.logika.StartSimulation();
         }
 
         public override void Stop()
         {
-            logika.StopSim();
+            this.logika.StopSimulation();
         }
 
-        public static IEnumerable<KulkaModel> m(IEnumerable<Kula> kulki)
+        public override void Dispose()
         {
-            return kulki.Select(kulka => new KulkaModel(kulka));
-        }
-
-        public void Subscribe(IObservable<IEnumerable<Kula>> p)
-        {
-            unsubscriber = p.Subscribe(this);
-        }
-
-        public override void OnCompleted()
-        {
-            Unsubscribe();
-            EndTransmission();
-        }
-
-        public override void OnError(Exception error)
-        {
-            throw error;
-        }
-        public override void OnNext(IEnumerable<Kula> kulki)
-        {
-            SledzKulki(m(kulki));
-        }
-
-        public void Unsubscribe()
-        {
-            unsubscriber?.Dispose();
-        }
-        public override IDisposable Subscribe(IObserver<IEnumerable<KulkaModel>> obs)
-        {
-            if (!observers.Contains(obs))
-            {
-                observers.Add(obs);
-            }
-            return new Unsubscriber(observers, obs);
-        }
-
-        private class Unsubscriber : IDisposable
-        {
-            private readonly ISet<IObserver<IEnumerable<KulkaModel>>> observers;
-            private readonly IObserver<IEnumerable<KulkaModel>> observer;
-
-            public Unsubscriber(ISet<IObserver<IEnumerable<KulkaModel>>> observers, IObserver<IEnumerable<KulkaModel>> observer)
-            {
-                this.observers = observers;
-                this.observer = observer;
-            }
-            //musi byc
-            public void Dispose()
-            {
-                if (observer != null)
-                {
-                    observers.Remove(observer);
-                }
-            }
-
-        }
-        public void SledzKulki(IEnumerable<KulkaModel> kulki)
-        {
-            foreach (var observer in this.observers)
-            {
-                if (kulki == null)
-                {
-                    observer.OnError(new NullReferenceException("Obiekt kulka jest null!"));
-                }
-                else
-                {
-                    observer.OnNext(kulki);
-                }
-            }
-        }
-
-        public void EndTransmission()
-        {
-            foreach (var observer in observers)
-            {
-                observer.OnCompleted();
-            }
-
-            observers.Clear();
+            logika.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -1,124 +1,105 @@
-﻿using Model;
-using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Windows;
 using System.Windows.Input;
+using Model;
 
 namespace ViewModel
 {
-    public abstract class ViewModelBase : INotifyPropertyChanged
+    public class ViewModelBase : INotifyPropertyChanged
     {
-        public event PropertyChangedEventHandler? PropertyChanged;//auto-generate
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected void OnPropertyChanged(string propertyName)
+        public void OnPropertyChanged(string propertyName)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));//auto-generate
-        }
-
-        protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = "")
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-            {
-                return false;
-            }
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
-    public class ViewModelMain : ViewModelBase
+    public class MainViewModel : ViewModelBase
     {
-        public ViewModelBase thisViewModel { get; }
+        public ModelApiBase model;
 
-        public ViewModelMain() : base()
+        public ObservableCollection<IKulaModel> Balls => model.Balls;
+
+        public double PlaneWidth
         {
-            thisViewModel = new ViewModelSim(walidatorKulek: new WalidatorKulek(1, 20));
-        }
-    }
-    public class ViewModelSim : ViewModelBase, IObserver<IEnumerable<KulkaModel>>
-    {
-        private IDisposable? unsubscriber;
+            get => model.ScenaWidth;
 
-        private ObservableCollection<KulkaModel> kulki;
-        private readonly ApiModel logic;
-        private readonly InterfaceValidator<int> validator;
-        private int liczbaKulek = 5;
-        private bool flag = false;
-
-        public int LiczbaKulek
-        {
-            get => liczbaKulek;
             set
             {
-                if (validator.IsValid(value)) SetField(ref liczbaKulek, value);
-                else liczbaKulek = 1;
+                model.ScenaWidth = value;
+                OnPropertyChanged(nameof(PlaneWidth));
             }
         }
-        public bool getSetFlag
+        public double PlaneHeight
         {
-            get => flag;
-            private set => SetField(ref flag, value);
-        }
-        public IEnumerable<KulkaModel> Kulki => kulki;
-        public ICommand SimStartCommand { get; init; }
-        public ICommand SimStopCommand { get; init; }
+            get => model.ScenaHeight;
 
-        public ViewModelSim(ApiModel? model = default, InterfaceValidator<int>? walidatorKulek = default)
-            : base()
-        {
-            logic = model ?? ApiModel.StworzModelApi();
-            validator = walidatorKulek ?? new WalidatorKulek();
-            kulki = new ObservableCollection<KulkaModel>();
-
-            SimStartCommand = new SimStartCommand(this);
-            SimStopCommand = new SimStopCommand(this);
-            Subscribe(logic);
-        }
-
-        public void Subscribe(IObservable<IEnumerable<KulkaModel>> provider)//generated
-        {
-            unsubscriber = provider.Subscribe(this);
-        }
-
-        public void Unsubscribe()
-        {
-            unsubscriber?.Dispose();//generated
-        }
-
-
-        public void SimStart()
-        {
-            getSetFlag = true;
-            logic.GenerowanieKul(LiczbaKulek);
-            logic.Start();
-        }
-
-        public void SimStop()
-        {
-            getSetFlag = false;
-            logic.Stop();
-        }
-
-        //wymagane przez visual
-        public void OnCompleted()
-        {
-            Unsubscribe();
-        }
-
-        public void OnError(Exception error)
-        {
-            throw error;
-        }
-        public void OnNext(IEnumerable<KulkaModel> kulki)
-        {
-            if (kulki == null)
+            set
             {
-                kulki = new List<KulkaModel>();
+                model.ScenaHeight = value;
+                OnPropertyChanged(nameof(PlaneHeight));
             }
-            this.kulki = new ObservableCollection<KulkaModel>(kulki);
-            OnPropertyChanged(nameof(Kulki));
+        }
+
+        private uint _ballsNum;
+        public uint BallsNumber
+        {
+            get
+            {
+                return _ballsNum;
+            }
+            set
+            {
+                _ballsNum = value;
+                OnPropertyChanged(nameof(BallsNumber));
+            }
+        }
+
+        private uint _maxBallsNum;
+        public uint MaxBallsNumber
+        {
+            get
+            {
+                return _maxBallsNum;
+            }
+            private set
+            {
+                if (_maxBallsNum != value)
+                {
+                    _maxBallsNum = value;
+                    OnPropertyChanged(nameof(MaxBallsNumber));
+                }
+            }
+        }
+
+        public static uint MaxBallRadius => 50;
+        public static uint MinBallRadius => 5;
+
+        public static double MinBallVel => 10;
+        public static double MaxBallVel => 100;
+
+        public ICommand GenerateBallsCommand { get; private set; }
+
+        public MainViewModel()
+        {
+            this.BallsNumber = 0;
+            this.MaxBallsNumber = 0;
+            this.GenerateBallsCommand = new GenerateBallsCommand(this);
+
+            this.model = ModelApiBase.GetApi();
+            this.PropertyChanged += RecalculateMaxBallsNumber;
+        }
+
+        void RecalculateMaxBallsNumber(object? source, PropertyChangedEventArgs? e)
+        {
+            if (e?.PropertyName == nameof(PlaneWidth) || e?.PropertyName == nameof(PlaneHeight))
+            {
+                uint ballsInHeight = (uint)(PlaneHeight / (MaxBallRadius * 2));
+                uint ballsInWidth = (uint)(PlaneWidth / (MaxBallRadius * 2));
+
+                uint ballsNumber = ballsInHeight * ballsInWidth;
+                MaxBallsNumber = ballsNumber >= 40 ? ballsNumber - 40 : 0;
+            }
         }
     }
 }

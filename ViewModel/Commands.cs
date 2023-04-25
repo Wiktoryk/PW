@@ -1,83 +1,52 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using System.ComponentModel;
+using System.Windows;
 
 namespace ViewModel
 {
-    public abstract class CommandBase : ICommand
+    internal abstract class CommandBase : ICommand
     {
         public event EventHandler? CanExecuteChanged;
 
-        public virtual bool CanExecute(object? parameter) => true;
+        public virtual bool CanExecute(object? parameter)
+        {
+            return true;
+        }
 
         public abstract void Execute(object? parameter);
 
         protected void OnCanExecuteChanged()
         {
-            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            CanExecuteChanged?.Invoke(this, new EventArgs());
         }
     }
-    public class SimStartCommand : CommandBase
+    internal class GenerateBallsCommand : CommandBase
     {
-        private readonly ViewModelSim viewModelSim;
+        private readonly MainViewModel m_mainView;
 
-        public SimStartCommand(ViewModelSim viewModelSim) : base()
+        public GenerateBallsCommand(MainViewModel mainView)
         {
-            this.viewModelSim = viewModelSim;
-
-            this.viewModelSim.PropertyChanged += OnSimViewModelPropertyChanged;
+            m_mainView = mainView;
+            m_mainView.PropertyChanged += OnViewModelPropertyChanged;
         }
 
         public override bool CanExecute(object? parameter)
         {
-            return base.CanExecute(parameter)
-                && !viewModelSim.getSetFlag;
+            return m_mainView.BallsNumber > 0 && base.CanExecute(parameter) && m_mainView.BallsNumber <= m_mainView.MaxBallsNumber;
         }
-
 
         public override void Execute(object? parameter)
         {
-            viewModelSim.SimStart();
+            this.m_mainView.model.GenerateBalls(this.m_mainView.BallsNumber, MainViewModel.MinBallRadius, MainViewModel.MaxBallRadius, MainViewModel.MinBallVel, MainViewModel.MaxBallVel);
+            this.m_mainView.OnPropertyChanged(nameof(this.m_mainView.Balls));
+            MessageBox.Show("Generated " + m_mainView.BallsNumber + " Balls", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            this.m_mainView.model.Start();
         }
 
-        private void OnSimViewModelPropertyChanged(object? sn, PropertyChangedEventArgs e)
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ViewModelSim.getSetFlag))
-            {
-                OnCanExecuteChanged();
-            }
-        }
-    }
-    public class SimStopCommand : CommandBase
-    {
-        private readonly ViewModelSim viewModelSim;
-
-        public SimStopCommand(ViewModelSim viewModelSim) : base()
-        {
-            this.viewModelSim = viewModelSim;
-
-            this.viewModelSim.PropertyChanged += OnSimViewModelPropertyChanged;
-        }
-
-        public override bool CanExecute(object? parameter)
-        {
-            return base.CanExecute(parameter)
-                && viewModelSim.getSetFlag;
-        }
-
-
-        public override void Execute(object? parameter)
-        {
-            viewModelSim.SimStop();
-        }
-
-        private void OnSimViewModelPropertyChanged(object? sn, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(viewModelSim.getSetFlag))
+            if (e.PropertyName == nameof(m_mainView.BallsNumber))
             {
                 OnCanExecuteChanged();
             }

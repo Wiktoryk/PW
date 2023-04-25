@@ -1,56 +1,50 @@
-﻿<Window x:Class="View.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:View" xmlns:viewmodel="clr-namespace:ViewModel;assembly=ViewModel"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+﻿<Window
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:viewmodel="clr-namespace:ViewModel;assembly=ViewModel"
+             xmlns:model="clr-namespace:Model;assembly=Model"
+             xmlns:ext="clr-namespace:ViewModel;assembly=ViewModel"
+             xmlns:local="clr-namespace:View"
+             xmlns:Globalization="clr-namespace:System.Globalization;assembly=System.Runtime" x:Class="View.MainWindow"
+             Title="Balls" d:DesignHeight="450" d:DesignWidth="800"
+             mc:Ignorable="d">
     <Window.DataContext>
-        <viewmodel:ViewModelMain/>
+        <viewmodel:MainViewModel/>
     </Window.DataContext>
-    <Grid Margin="0,-1,0,1">
-
-        <Button Content="Start" HorizontalAlignment="Left" Margin="564,10,0,0" VerticalAlignment="Top" Height="102" Width="226" Command="{Binding thisViewModel.SimStartCommand}"/>
-        <Button Content="Stop" HorizontalAlignment="Left" Margin="564,117,0,0" VerticalAlignment="Top" Height="102" Width="226" Command="{Binding thisViewModel.SimStopCommand}"/>
-        <TextBox HorizontalAlignment="Left" Margin="617,240,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="{Binding thisViewModel.LiczbaKulek}"/>
-        <Border BorderBrush="#0000FF" BorderThickness="3" Margin="0,28,251,126" Width="356" Height="206">
-            <ItemsControl ItemsSource="{Binding thisViewModel.Kulki}" Margin="0,0,0,0">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <Canvas Name="BallSpace" Margin="0,0,0,0" Width="350" Height="200" RenderTransformOrigin="0.5,0.5">
-                            <Canvas.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform ScaleY="-1"/>
-                                    <SkewTransform/>
-                                    <RotateTransform/>
-                                    <TranslateTransform/>
-                                </TransformGroup>
-                            </Canvas.RenderTransform>
-                            <Canvas.Background>
-                                <SolidColorBrush Color="#FFFACD"/>
-                            </Canvas.Background>
-                        </Canvas>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemContainerStyle>
-                    <Style>
-                        <Setter Property="Canvas.Left" Value="{Binding Pozycja.X}"/>
-                        <Setter Property="Canvas.Top" Value="{Binding Pozycja.Y}"/>
-                    </Style>
-                </ItemsControl.ItemContainerStyle>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Ellipse Height="{Binding Srednica}"
-                                 Width="{Binding Srednica}"
-                                  Margin="0, 0, 0, 0">
-                            <Ellipse.Fill>
-                                <SolidColorBrush Color="#00FF00"/>
-                            </Ellipse.Fill>
-                        </Ellipse>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </Border>
+    <Grid Background="White">
+        <Label Content="Liczba kul" HorizontalAlignment="Left" Margin="10,26,0,0" VerticalAlignment="Top"/>
+        <xctk:IntegerUpDown x:Name="myUpDownControl" Height="23" Width="186" Watermark="Type Integer" Minimum="0" Maximum="{Binding MaxBallsNumber, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" ClipValueToMinMax="True" AllowTextInput="True" DisplayDefaultValueOnEmptyText="True" DefaultValue="0" Value="{Binding BallsNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="7,57,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        <Button Command="{Binding GenerateBallsCommand}" Content="Generate Balls" HorizontalAlignment="Left" Width="124" Height="36" VerticalAlignment="Bottom" Margin="38,0,0,10"/>
+        <GridSplitter x:Name="gridSplitter" HorizontalAlignment="Left" Margin="218,0,0,0" Width="5"/>
+        <ItemsControl ItemsSource="{Binding Balls, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas x:Name="BallCanvas" Margin="228,10,10,10" Background="#FFFF00"
+                            ext:ActualSizeGetter.ActualSize="True"
+                            ext:ActualSizeGetter.ActualWidth="{Binding PlaneWidth, Mode=OneWayToSource, UpdateSourceTrigger=PropertyChanged}"
+                            ext:ActualSizeGetter.ActualHeight="{Binding PlaneHeight, Mode=OneWayToSource, UpdateSourceTrigger=PropertyChanged}">
+                        <Canvas.Effect>
+                            <DropShadowEffect/>
+                        </Canvas.Effect>
+                    </Canvas>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="{x:Type ContentPresenter}">
+                    <Setter Property="Canvas.Left" Value="{Binding CanvasPos.X, UpdateSourceTrigger=PropertyChanged}" />
+                    <Setter Property="Canvas.Top" Value="{Binding CanvasPos.Y, UpdateSourceTrigger=PropertyChanged}"/>
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type model:KulaModel}">
+                    <Ellipse Fill="#FF0000" 
+                             Width="{Binding Diameter, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                             Height="{Binding Diameter, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
 </Window>

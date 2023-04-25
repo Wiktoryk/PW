@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dane", "PW\Dane.csproj", "{CACF5F98-2B27-4ECD-B879-D4DFF29CDC6A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "PWTests\Tests.csproj", "{61B5294F-4648-4938-A62F-DCE5CF6F98F5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaneTests", "PWTests\DaneTests.csproj", "{61B5294F-4648-4938-A62F-DCE5CF6F98F5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Logika", "Logika\Logika.csproj", "{7900237D-3178-42E9-907E-57306F68FC66}"
 EndProject
@@ -16,6 +16,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ViewModel", "ViewModel\ViewModel.csproj", "{6D868F91-0E70-4065-AE4C-32F51F8CEF74}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "View", "View\View.csproj", "{5CBE3D14-89F0-45A9-8E0A-C0E82DD17E18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogikaTests", "LogikaTests\LogikaTests.csproj", "{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,10 @@ Global
 		{5CBE3D14-89F0-45A9-8E0A-C0E82DD17E18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5CBE3D14-89F0-45A9-8E0A-C0E82DD17E18}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5CBE3D14-89F0-45A9-8E0A-C0E82DD17E18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
