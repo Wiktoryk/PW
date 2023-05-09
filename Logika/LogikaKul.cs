@@ -94,7 +94,7 @@ namespace Logika
             IKula ball = (IKula)source;
             Pozycja currVel = ball.GetSzybkosc();
             Pozycja newPos = e.NewPoz;
-            (newPos, currVel) = CheckCollisionsRecursion(e.LastPoz, newPos, currVel, ball.GetPromien(), e.ElapsedSeconds);
+            (newPos, currVel) = CheckCollisionsRecursion(e.LastPoz, newPos, currVel, ball.GetPromien(), e.ElapsedSeconds, ball.GetMasa(), Kule, ball);
 
             if (currVel != ball.GetSzybkosc())
             {
@@ -107,19 +107,19 @@ namespace Logika
             }
         }
 
-        private (Pozycja, Pozycja) CheckCollisionsRecursion(Pozycja lastPoz, Pozycja newPoz, Pozycja obecnaSzybkosc, double promien, double totalTime, uint maxNum = 3, uint num = 0)
+        private (Pozycja, Pozycja) CheckCollisionsRecursion(Pozycja lastPoz, Pozycja newPoz, Pozycja obecnaSzybkosc, double promien, double totalTime, double masa, List<IKula> inne, IKula kula, uint maxNum = 3, uint num = 0)
         {
-            Pozycja topLeftPlanePoint = new() { X = 0 + promien, Y = 0 + promien };
-            Pozycja topRightPlanePoint = new() { X = ScenaWidth - promien, Y = 0 + promien };
-            Pozycja bottomRightPlanePoint = new() { X = ScenaWidth - promien, Y = ScenaHeight - promien };
-            Pozycja bottomLeftPlanePoint = new() { X = 0 + promien, Y = ScenaHeight - promien };
+            Pozycja górnyLewyPunktSceny = new() { X = 0 + promien, Y = 0 + promien };
+            Pozycja górnyPrawyPunktSceny = new() { X = ScenaWidth - promien, Y = 0 + promien };
+            Pozycja dolnyPrawyPunktSceny = new() { X = ScenaWidth - promien, Y = ScenaHeight - promien };
+            Pozycja dolnyLewyPunktSceny = new() { X = 0 + promien, Y = ScenaHeight - promien };
 
             if (totalTime > 0)
             {
                 double tc;
-                if (newPoz.Y <= topLeftPlanePoint.Y && obecnaSzybkosc.Y < 0)
+                if (newPoz.Y <= górnyLewyPunktSceny.Y && obecnaSzybkosc.Y < 0)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, topLeftPlanePoint, topRightPlanePoint);
+                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, górnyLewyPunktSceny, górnyPrawyPunktSceny);
                     if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
                     {
                         lastPoz = obecnaSzybkosc * tc + lastPoz;
@@ -129,9 +129,9 @@ namespace Logika
                     }
                 }
 
-                if (newPoz.X >= topRightPlanePoint.X && obecnaSzybkosc.X > 0)
+                if (newPoz.X >= górnyPrawyPunktSceny.X && obecnaSzybkosc.X > 0)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, topRightPlanePoint, bottomRightPlanePoint);
+                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, górnyPrawyPunktSceny, dolnyPrawyPunktSceny);
                     if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
                     {
                         lastPoz = obecnaSzybkosc * tc + lastPoz;
@@ -141,9 +141,9 @@ namespace Logika
                     }
                 }
 
-                if (newPoz.Y >= bottomRightPlanePoint.Y && obecnaSzybkosc.Y > 0)
+                if (newPoz.Y >= dolnyPrawyPunktSceny.Y && obecnaSzybkosc.Y > 0)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, bottomLeftPlanePoint, bottomRightPlanePoint);
+                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, dolnyLewyPunktSceny, dolnyPrawyPunktSceny);
                     if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
                     {
                         lastPoz = obecnaSzybkosc * tc + lastPoz;
@@ -153,15 +153,37 @@ namespace Logika
                     }
                 }
 
-                if (newPoz.X <= bottomLeftPlanePoint.X && obecnaSzybkosc.X < 0)
+                if (newPoz.X <= dolnyLewyPunktSceny.X && obecnaSzybkosc.X < 0)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, bottomLeftPlanePoint, topLeftPlanePoint);
+                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, dolnyLewyPunktSceny, górnyLewyPunktSceny);
                     if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
                     {
                         lastPoz = obecnaSzybkosc * tc + lastPoz;
                         obecnaSzybkosc.X *= -1;
                         totalTime -= tc;
                         newPoz = obecnaSzybkosc * totalTime + lastPoz;
+                    }
+                }
+
+                foreach (var kulaInna in inne)
+                {
+                    if (kula.GetId() != kulaInna.GetId())
+                    {
+                        Pozycja deltaPozycji = new Pozycja(kulaInna.GetPoz().X - kula.GetPoz().X, kulaInna.GetPoz().Y - kula.GetPoz().Y);
+                        double sumaPromieni = kula.GetPromien() + kulaInna.GetPromien();
+                        double kwadratOdleglosci = deltaPozycji.X * deltaPozycji.X + deltaPozycji.Y * deltaPozycji.Y;
+                        if (kwadratOdleglosci <= sumaPromieni * sumaPromieni)
+                        {
+                            tc = CollisionManager.TimeOfCollisionWithBall(kula, kulaInna);
+                            if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
+                            {
+                                lastPoz = obecnaSzybkosc * tc + lastPoz;
+                                obecnaSzybkosc.X = (obecnaSzybkosc.X * (masa - kula.GetMasa()) + 2 * kula.GetMasa() * kula.GetSzybkosc().X) / (masa + kula.GetMasa());
+                                obecnaSzybkosc.Y = (obecnaSzybkosc.Y * (masa - kula.GetMasa()) + 2 * kula.GetMasa() * kula.GetSzybkosc().Y) / (masa + kula.GetMasa());
+                                totalTime -= tc;
+                                newPoz = obecnaSzybkosc * totalTime + lastPoz;
+                            }
+                        }
                     }
                 }
             }
@@ -170,7 +192,7 @@ namespace Logika
             {
                 return (newPoz, obecnaSzybkosc);
             }
-            return CheckCollisionsRecursion(lastPoz, newPoz, obecnaSzybkosc, promien, totalTime, maxNum, num);
+            return CheckCollisionsRecursion(lastPoz, newPoz, obecnaSzybkosc, promien, totalTime, masa, inne, kula, maxNum, num);
         }
 
         public void Dispose()
@@ -216,6 +238,33 @@ namespace Logika
                 }
             }
 
+            return tc;
+        }
+        public static double TimeOfCollisionWithBall(IKula kula1, IKula kula2)
+        {
+            double a = Math.Pow(kula1.GetSzybkosc().X - kula2.GetSzybkosc().X, 2) + Math.Pow(kula1.GetSzybkosc().Y - kula2.GetSzybkosc().Y, 2);
+            double b = 2 * ((kula1.GetSzybkosc().X - kula2.GetSzybkosc().X) * (kula1.GetPoz().X - kula2.GetPoz().X) + (kula1.GetSzybkosc().Y - kula2.GetSzybkosc().Y) * (kula1.GetPoz().Y - kula2.GetPoz().Y));
+            double c = Math.Pow(kula1.GetPoz().X - kula2.GetPoz().X, 2) + Math.Pow(kula1.GetPoz().Y - kula2.GetPoz().Y, 2) - 4 * Math.Pow(kula1.GetMasa(), 2);
+            if (a == 0)
+            {
+                return double.PositiveInfinity;
+            }
+
+            double delta = b * b - 4 * a * c;
+            if (delta < 0)
+            {
+                return double.PositiveInfinity;
+            }
+
+            double t1 = (-b - Math.Sqrt(delta)) / (2 * a);
+            double t2 = (-b + Math.Sqrt(delta)) / (2 * a);
+
+            if (t1 < 0 && t2 < 0)
+            {
+                return double.PositiveInfinity;
+            }
+
+            double tc = Math.Min(t1, t2);
             return tc;
         }
     }

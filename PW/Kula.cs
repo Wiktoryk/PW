@@ -12,6 +12,7 @@ namespace Dane
         private double m_promien;
         private Pozycja m_poz;
         private Pozycja m_szybkosc;
+        private double masa;
 
         public Kula(long id, double promien, Pozycja poz, Pozycja szybkosc)
         {
@@ -19,6 +20,7 @@ namespace Dane
             this.m_promien = promien;
             this.m_poz = poz;
             this.m_szybkosc = szybkosc;
+            this.masa = 20.0;
             this.m_endThread = false;
             this.m_thread = new Thread(new ThreadStart(this.ThreadMethod))
             {
@@ -59,6 +61,11 @@ namespace Dane
         public Pozycja GetSzybkosc()
         {
             return this.m_szybkosc;
+        }
+
+        public double GetMasa()
+        {
+            return this.masa;
         }
 
         #endregion KulaBase
