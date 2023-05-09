@@ -171,15 +171,25 @@ namespace Logika
                     {
                         Pozycja deltaPozycji = new Pozycja(kulaInna.GetPoz().X - kula.GetPoz().X, kulaInna.GetPoz().Y - kula.GetPoz().Y);
                         double sumaPromieni = kula.GetPromien() + kulaInna.GetPromien();
-                        double kwadratOdleglosci = deltaPozycji.X * deltaPozycji.X + deltaPozycji.Y * deltaPozycji.Y;
-                        if (kwadratOdleglosci <= sumaPromieni * sumaPromieni)
+                        double odleglosc = Math.Sqrt(deltaPozycji.X * deltaPozycji.X + deltaPozycji.Y * deltaPozycji.Y);
+                        double overlap = kula.GetPromien() + kulaInna.GetPromien() - odleglosc;
+                        if (overlap <= sumaPromieni)
                         {
                             tc = CollisionManager.TimeOfCollisionWithBall(kula, kulaInna);
                             if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
                             {
+                                Pozycja normal = new Pozycja(deltaPozycji.X / odleglosc, deltaPozycji.Y / odleglosc);
+                                Pozycja szybkosc1 = new Pozycja(kula.GetSzybkosc().X, kula.GetSzybkosc().Y);
+                                Pozycja szybkosc2 = new Pozycja(kulaInna.GetSzybkosc().X, kulaInna.GetSzybkosc().Y);
+                                double dotProduct1 = (szybkosc1.X * normal.X + szybkosc1.Y * normal.Y);
+                                double dotProduct2 = (szybkosc2.X * normal.X + szybkosc2.Y * normal.Y);
+                                double impulse1 = (2.0 * (dotProduct2 - dotProduct1)) / (kula.GetMasa() + kulaInna.GetMasa());
+                                double impulse2 = (2.0 * (dotProduct1 - dotProduct2)) / (kula.GetMasa() + kulaInna.GetMasa());
+                                szybkosc1.X += impulse1 * normal.X;
+                                szybkosc1.Y += impulse2 * normal.Y;
                                 lastPoz = obecnaSzybkosc * tc + lastPoz;
-                                obecnaSzybkosc.X = (obecnaSzybkosc.X * (masa - kula.GetMasa()) + 2 * kula.GetMasa() * kula.GetSzybkosc().X) / (masa + kula.GetMasa());
-                                obecnaSzybkosc.Y = (obecnaSzybkosc.Y * (masa - kula.GetMasa()) + 2 * kula.GetMasa() * kula.GetSzybkosc().Y) / (masa + kula.GetMasa());
+                                obecnaSzybkosc.X = szybkosc1.X;
+                                obecnaSzybkosc.Y = szybkosc1.Y;
                                 totalTime -= tc;
                                 newPoz = obecnaSzybkosc * totalTime + lastPoz;
                             }
