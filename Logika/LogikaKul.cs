@@ -12,6 +12,7 @@ namespace Logika
     {
         private readonly Scena m_scena;
         private readonly DaneApiBase dane;
+        private readonly object m_lock = new object();
 
         public List<IKula> Kule { get; private set; }
         public double ScenaWidth
@@ -94,8 +95,10 @@ namespace Logika
             IKula ball = (IKula)source;
             Pozycja currVel = ball.GetSzybkosc();
             Pozycja newPos = e.NewPoz;
-            (newPos, currVel) = CheckCollisionsRecursion(e.LastPoz, newPos, currVel, ball.GetPromien(), e.ElapsedSeconds, ball.GetMasa(), Kule, ball);
-
+            lock (m_lock)
+            {
+                (newPos, currVel) = CheckCollisionsRecursion(e.LastPoz, newPos, currVel, ball.GetPromien(), e.ElapsedSeconds, ball.GetMasa(), Kule, ball);
+            }
             if (currVel != ball.GetSzybkosc())
             {
                 ball.SetSzybkosc(currVel);
