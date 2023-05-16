@@ -172,8 +172,8 @@ namespace Logika
                         Pozycja deltaPozycji = new Pozycja(kulaInna.GetPoz().X - kula.GetPoz().X, kulaInna.GetPoz().Y - kula.GetPoz().Y);
                         double sumaPromieni = kula.GetPromien() + kulaInna.GetPromien();
                         double odleglosc = Math.Sqrt(deltaPozycji.X * deltaPozycji.X + deltaPozycji.Y * deltaPozycji.Y);
-                        double overlap = kula.GetPromien() + kulaInna.GetPromien() - odleglosc;
-                        if (overlap <= sumaPromieni)
+                        double overlap = sumaPromieni - odleglosc;
+                        if (Math.Abs(overlap) > 0)
                         {
                             tc = CollisionManager.TimeOfCollisionWithBall(kula, kulaInna);
                             if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
@@ -184,12 +184,16 @@ namespace Logika
                                 double dotProduct1 = (szybkosc1.X * normal.X + szybkosc1.Y * normal.Y);
                                 double dotProduct2 = (szybkosc2.X * normal.X + szybkosc2.Y * normal.Y);
                                 double impulse1 = (2.0 * (dotProduct2 - dotProduct1)) / (kula.GetMasa() + kulaInna.GetMasa());
-                                double impulse2 = (2.0 * (dotProduct1 - dotProduct2)) / (kula.GetMasa() + kulaInna.GetMasa());
+                                //double impulse2 = (2.0 * (dotProduct1 - dotProduct2)) / (kula.GetMasa() + kulaInna.GetMasa());
                                 szybkosc1.X += impulse1 * normal.X;
-                                szybkosc1.Y += impulse2 * normal.Y;
+                                szybkosc1.Y += impulse1 * normal.Y;
+                                //szybkosc2.X += impulse2 * normal.X;
+                                //szybkosc2.Y += impulse2 * normal.Y;
+                                //kulaInna.SetSzybkosc(szybkosc2);
+                                //kula.SetSzybkosc(szybkosc1);
                                 lastPoz = obecnaSzybkosc * tc + lastPoz;
-                                obecnaSzybkosc.X = szybkosc1.X;
-                                obecnaSzybkosc.Y = szybkosc1.Y;
+                                obecnaSzybkosc.X = -szybkosc1.X;
+                                obecnaSzybkosc.Y = -szybkosc1.Y;
                                 totalTime -= tc;
                                 newPoz = obecnaSzybkosc * totalTime + lastPoz;
                             }
