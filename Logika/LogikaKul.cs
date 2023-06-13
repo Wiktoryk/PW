@@ -14,7 +14,7 @@ namespace Logika
         private readonly Scena m_scena;
         private readonly DaneApiBase dane;
         private readonly object m_lock = new object();
-        private readonly Log _logger = new Log();
+        private readonly ILogger _logger = new Log();
 
         public List<IKula> Kule { get; private set; }
         public double ScenaWidth
