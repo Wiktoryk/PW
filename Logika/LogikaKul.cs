@@ -94,7 +94,7 @@ namespace Logika
         }
         void LogPoz(object source, PositionChangedEventArgs e)
         {
-            Kula kula = (Kula)source;
+            IKula kula = (IKula)source;
             _logger.LogInfo($"{kula.ToString}");
         }
 

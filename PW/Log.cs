@@ -81,8 +81,6 @@ namespace Dane
 
         private async void WriteLoop(object o)
         {
-            if (!_logging)
-            {
                 try
                 {
                     ZapisLogi();
@@ -91,7 +89,6 @@ namespace Dane
                 {
                     Trace.WriteLine(ex.Message);
                 }
-            }
         }
 
         private void ZapisLogi()

@@ -14,6 +14,8 @@ namespace Dane
         private Pozycja m_szybkosc;
         private double masa;
         public static readonly object move_lock = new object();
+        public static readonly object poz_lock = new object();
+        public static readonly object vel_lock = new object();
 
         public Kula(long id, double promien, Pozycja poz, Pozycja szybkosc)
         {
@@ -36,12 +38,18 @@ namespace Dane
 
         public void SetPoz(Pozycja poz)
         {
-            this.m_poz = poz;
+            lock (poz_lock)
+            {
+                this.m_poz = poz;
+            }
         }
 
         public void SetSzybkosc(Pozycja szybkosc)
         {
-            this.m_szybkosc = szybkosc;
+            lock (vel_lock)
+            {
+                this.m_szybkosc = szybkosc;
+            }
         }
 
         public long GetId()
@@ -56,12 +64,18 @@ namespace Dane
 
         public Pozycja GetPoz()
         {
-            return this.m_poz;
+            lock (poz_lock)
+            {
+                return this.m_poz;
+            }
         }
 
         public Pozycja GetSzybkosc()
         {
-            return this.m_szybkosc;
+            lock (vel_lock)
+            {
+                return this.m_szybkosc;
+            }
         }
 
         public double GetMasa()
@@ -100,19 +114,18 @@ namespace Dane
             stopwatch.Start();
             while (!m_endThread)
             {
-                lock (move_lock)
-                {
                     Pozycja lastPos = this.m_poz;
 
                     TimeSpan elapsed = stopwatch.Elapsed;
                     stopwatch.Restart();
                     Pozycja newPos = lastPos + (this.m_szybkosc * elapsed.TotalSeconds);
                     this.m_poz = newPos;
-
+                lock (move_lock)
+                {
                     OnPositionChanged?.Invoke(this, new PositionChangedEventArgs(lastPos, newPos, elapsed.TotalSeconds));
+                }
                     Thread.Sleep(Math.Sqrt(this.m_szybkosc.X * this.m_szybkosc.X + this.m_szybkosc.Y * this.m_szybkosc.Y)>0?
                         (int)(10 /Math.Sqrt(this.m_szybkosc.X *this.m_szybkosc.X+this.m_szybkosc.Y*this.m_szybkosc.Y)):10);
-                }
             }
         }
 

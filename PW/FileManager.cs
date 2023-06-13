@@ -11,10 +11,7 @@ namespace Dane
     {
         //katalogi tutaj 
         public static readonly string BaseDataDirPath =
-        Path.Combine(Environment.GetFolderPath(
-            Environment.SpecialFolder.MyDocuments
-            ),
-            "kulki");
+        Path.Combine(AppDomain.CurrentDomain.BaseDirectory ,"kulki");
 
         public static void DirIsValid(bool writePath = false)
         {

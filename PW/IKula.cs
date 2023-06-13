@@ -14,6 +14,7 @@ namespace Dane
         Pozycja GetPoz();
         Pozycja GetSzybkosc();
         double GetMasa();
+        string? ToString();
 
         #endregion KulaBase
 

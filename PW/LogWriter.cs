@@ -14,7 +14,7 @@ namespace Dane
     }
     public class LogWriter : ILogWriter
     {
-        private readonly string _logPlikSciezka;
+        private string _logPlikSciezka;
 
         public void Dispose()
         {
@@ -28,6 +28,7 @@ namespace Dane
             if (String.IsNullOrWhiteSpace(nazwaPliku)) nazwaPliku = $"Pozycje({DateTime.Now:yyyy-MM-dd' 'HH-mm-ss}).log";
             //$"Kolizje({DateTime.Now:'D'yyyy-MM-dd'T'HH-mm-ss}).log"
             _logPlikSciezka = Path.Combine(FileManager.BaseDataDirPath, nazwaPliku);
+            File.Create(_logPlikSciezka);
         }
 
         public void Write(IEnumerable<LogAccess> logAccesses)
@@ -45,7 +46,10 @@ namespace Dane
 
             try
             {
-                File.AppendAllText(_logPlikSciezka, lg.ToString());
+                using (StreamWriter writer = File.AppendText(_logPlikSciezka))
+                {
+                    writer.WriteLine(lg.ToString());
+                }
             }
             catch (Exception ex)
             {
