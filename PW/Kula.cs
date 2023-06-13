@@ -13,6 +13,7 @@ namespace Dane
         private Pozycja m_poz;
         private Pozycja m_szybkosc;
         private double masa;
+        public static readonly object move_lock = new object();
 
         public Kula(long id, double promien, Pozycja poz, Pozycja szybkosc)
         {
@@ -95,15 +96,19 @@ namespace Dane
             stopwatch.Start();
             while (!m_endThread)
             {
-                Pozycja lastPos = this.m_poz;
+                lock (move_lock)
+                {
+                    Pozycja lastPos = this.m_poz;
 
-                TimeSpan elapsed = stopwatch.Elapsed;
-                stopwatch.Restart();
-                Pozycja newPos = lastPos + (this.m_szybkosc * elapsed.TotalSeconds);
-                this.m_poz = newPos;
+                    TimeSpan elapsed = stopwatch.Elapsed;
+                    stopwatch.Restart();
+                    Pozycja newPos = lastPos + (this.m_szybkosc * elapsed.TotalSeconds);
+                    this.m_poz = newPos;
 
-                OnPositionChanged?.Invoke(this, new PositionChangedEventArgs(lastPos, newPos, elapsed.TotalSeconds));
-                Thread.Sleep(10);
+                    OnPositionChanged?.Invoke(this, new PositionChangedEventArgs(lastPos, newPos, elapsed.TotalSeconds));
+                    Thread.Sleep(Math.Sqrt(this.m_szybkosc.X * this.m_szybkosc.X + this.m_szybkosc.Y * this.m_szybkosc.Y)>0?
+                        (int)(10 /Math.Sqrt(this.m_szybkosc.X *this.m_szybkosc.X+this.m_szybkosc.Y*this.m_szybkosc.Y)):10);
+                }
             }
         }
 

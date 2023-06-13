@@ -95,18 +95,18 @@ namespace Logika
             IKula ball = (IKula)source;
             Pozycja currVel = ball.GetSzybkosc();
             Pozycja newPos = e.NewPoz;
-            lock (m_lock)
+            lock (Kula.move_lock)
             {
                 (newPos, currVel) = CheckCollisionsRecursion(e.LastPoz, newPos, currVel, ball.GetPromien(), e.ElapsedSeconds, ball.GetMasa(), Kule, ball);
-            }
-            if (currVel != ball.GetSzybkosc())
-            {
-                ball.SetSzybkosc(currVel);
-            }
+                if (currVel != ball.GetSzybkosc())
+                {
+                    ball.SetSzybkosc(currVel);
+                }
 
-            if (newPos != e.NewPoz)
-            {
-                ball.SetPoz(newPos);
+                if (newPos != e.NewPoz)
+                {
+                    ball.SetPoz(newPos);
+                }
             }
         }
 
@@ -176,7 +176,7 @@ namespace Logika
                         double sumaPromieni = kula.GetPromien() + kulaInna.GetPromien();
                         double odleglosc = Math.Sqrt(deltaPozycji.X * deltaPozycji.X + deltaPozycji.Y * deltaPozycji.Y);
                         double overlap = sumaPromieni - odleglosc;
-                        if (Math.Abs(overlap) > 0)
+                        if (overlap != 0)
                         {
                             tc = CollisionManager.TimeOfCollisionWithBall(kula, kulaInna);
                             if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
