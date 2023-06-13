@@ -79,12 +79,14 @@ namespace ViewModel
         public static double MaxBallVel => 100;
 
         public ICommand GenerateBallsCommand { get; private set; }
+        public ICommand SimStopCommand { get; private set; }
 
         public MainViewModel()
         {
             this.BallsNumber = 0;
             this.MaxBallsNumber = 0;
             this.GenerateBallsCommand = new GenerateBallsCommand(this);
+            this.SimStopCommand = new SimStopCommand(this);
 
             this.model = ModelApiBase.GetApi();
             this.PropertyChanged += RecalculateMaxBallsNumber;

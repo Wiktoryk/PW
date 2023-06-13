@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,6 +14,7 @@ namespace Logika
         private readonly Scena m_scena;
         private readonly DaneApiBase dane;
         private readonly object m_lock = new object();
+        private readonly Log _logger = new Log();
 
         public List<IKula> Kule { get; private set; }
         public double ScenaWidth
@@ -60,6 +62,7 @@ namespace Logika
             {
                 Kula newKula = this.dane.StworzKule(Pozycja.Zero, new Pozycja(ScenaWidth, ScenaHeight), minSzybkosc, maxSzybkosc);
                 newKula.OnPositionChanged += CheckCollisions;
+                newKula.OnPositionChanged += LogPoz;
                 Kule.Add(newKula);
             }
         }
@@ -88,6 +91,11 @@ namespace Logika
                 ball?.Dispose();
             }
             Kule.Clear();
+        }
+        void LogPoz(object source, PositionChangedEventArgs e)
+        {
+            Kula kula = (Kula)source;
+            _logger.LogInfo($"{kula.ToString}");
         }
 
         private void CheckCollisions(object source, PositionChangedEventArgs e)
@@ -176,7 +184,7 @@ namespace Logika
                         double sumaPromieni = kula.GetPromien() + kulaInna.GetPromien();
                         double odleglosc = Math.Sqrt(deltaPozycji.X * deltaPozycji.X + deltaPozycji.Y * deltaPozycji.Y);
                         double overlap = sumaPromieni - odleglosc;
-                        if (overlap != 0)
+                        if (Math.Abs(overlap) > 0)
                         {
                             tc = CollisionManager.TimeOfCollisionWithBall(kula, kulaInna);
                             if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)

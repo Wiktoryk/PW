@@ -43,10 +43,8 @@ namespace Model
         {
             this.logika.StworzKule(ballsNum, minVel, maxVel);
             this._balls = new ObservableCollection<IKulaModel>();
-            Random rnd = new();
             foreach (IKula ball in this.logika.Balls)
             {
-                Brush color = new SolidColorBrush(Color.FromRgb((byte)rnd.Next(256), (byte)rnd.Next(256), (byte)rnd.Next(256)));
                 this._balls.Add(new KulaModel(ball));
             }
         }

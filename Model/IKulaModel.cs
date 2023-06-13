@@ -10,7 +10,5 @@ namespace Model
         double Diameter { get; }
 
         Pozycja CanvasPos { get; set; }
-
-        Brush? Color { get; }
     }
 }

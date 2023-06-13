@@ -52,4 +52,32 @@ namespace ViewModel
             }
         }
     }
+    internal class SimStopCommand : CommandBase
+    {
+        private readonly MainViewModel m_mainView;
+
+        public SimStopCommand(MainViewModel mainView)
+        {
+            m_mainView = mainView;
+            m_mainView.PropertyChanged += OnViewModelPropertyChanged;
+        }
+
+        public override bool CanExecute(object? parameter)
+        {
+            return m_mainView.BallsNumber > 0 && base.CanExecute(parameter) && m_mainView.BallsNumber <= m_mainView.MaxBallsNumber;
+        }
+
+        public override void Execute(object? parameter)
+        {
+            this.m_mainView.model.Stop();
+        }
+
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(m_mainView.BallsNumber))
+            {
+                OnCanExecuteChanged();
+            }
+        }
+    }
 }

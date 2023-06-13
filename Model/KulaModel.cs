@@ -35,13 +35,11 @@ namespace Model
             }
         }
 
-        public Brush? Color { get; }
 
         public KulaModel(IKula ball)
         {
             this.ball = ball;
             this.ball.OnPositionChanged += BallPositionUpdate;
-            //this.Color = new SolidColorBrush(Color(0, 255, 0));
         }
 
         private void BallPositionUpdate(object sender, PositionChangedEventArgs e)

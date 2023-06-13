@@ -17,7 +17,8 @@
     <Grid Background="White">
         <Label Content="Liczba kul" HorizontalAlignment="Left" Margin="10,26,0,0" VerticalAlignment="Top"/>
         <xctk:IntegerUpDown x:Name="myUpDownControl" Height="23" Width="186" Watermark="Type Integer" Minimum="0" Maximum="{Binding MaxBallsNumber, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" ClipValueToMinMax="True" AllowTextInput="True" DisplayDefaultValueOnEmptyText="True" DefaultValue="0" Value="{Binding BallsNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="7,57,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-        <Button Command="{Binding GenerateBallsCommand}" Content="Generate Balls" HorizontalAlignment="Left" Width="124" Height="36" VerticalAlignment="Bottom" Margin="38,0,0,10"/>
+        <Button Command="{Binding GenerateBallsCommand}" Content="Generate Balls" HorizontalAlignment="Left" Width="124" Height="36" VerticalAlignment="Bottom" Margin="38,0,0,100"/>
+        <Button Content="stop" HorizontalAlignment="Left" Margin="38,0,0,10" VerticalAlignment="Bottom" Height="36" Width="124" Command="{Binding SimStopCommand}"/>
         <GridSplitter x:Name="gridSplitter" HorizontalAlignment="Left" Margin="218,0,0,0" Width="5"/>
         <ItemsControl ItemsSource="{Binding Balls, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
             <ItemsControl.ItemsPanel>

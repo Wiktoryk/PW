@@ -68,6 +68,10 @@ namespace Dane
         {
             return this.masa;
         }
+        public override string? ToString()
+        {
+            return $"Kula Promien={GetPromien()}, Pos=[{GetPoz().X:n1}, {GetPoz().Y:n1}], S=[{GetSzybkosc().X:n1}, {GetSzybkosc().Y:n1}]";
+        }
 
         #endregion KulaBase
 
