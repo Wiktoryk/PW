@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Threading;
 using System;
+using System.Text;
 
 namespace Dane
 {
@@ -13,9 +14,9 @@ namespace Dane
         private Pozycja m_poz;
         private Pozycja m_szybkosc;
         private double masa;
-        public static readonly object move_lock = new object();
-        public static readonly object poz_lock = new object();
-        public static readonly object vel_lock = new object();
+        private static readonly object poz_lock = new object();
+        private static readonly object vel_lock = new object();
+        private static readonly object promien_lock = new object();
 
         public Kula(long id, double promien, Pozycja poz, Pozycja szybkosc)
         {
@@ -33,7 +34,10 @@ namespace Dane
 
         public void SetPromien(double promien)
         {
-            this.m_promien = promien;
+            lock (promien_lock)
+            {
+                this.m_promien = promien;
+            }
         }
 
         public void SetPoz(Pozycja poz)
@@ -59,7 +63,10 @@ namespace Dane
 
         public double GetPromien()
         {
-            return this.m_promien;
+            lock (promien_lock)
+            {
+                return this.m_promien;
+            }
         }
 
         public Pozycja GetPoz()
@@ -84,7 +91,7 @@ namespace Dane
         }
         public override string? ToString()
         {
-            return $"Kula Promien={GetPromien()}, Pos=[{GetPoz().X:n1}, {GetPoz().Y:n1}], S=[{GetSzybkosc().X:n1}, {GetSzybkosc().Y:n1}]";
+            return $"Kula Poz=[{GetPoz().X:n1}, {GetPoz().Y:n1}], S=[{GetSzybkosc().X:n1}, {GetSzybkosc().Y:n1}]";
         }
 
         #endregion KulaBase
@@ -97,12 +104,12 @@ namespace Dane
 
         #region Thread
 
-        private readonly Thread m_thread;
+        private Thread m_thread;
         private bool m_endThread;
 
         public void StartThread()
         {
-            if (this.m_thread.ThreadState != System.Threading.ThreadState.Background)
+            if ((this.m_thread.ThreadState & System.Threading.ThreadState.Background) == System.Threading.ThreadState.Background && (this.m_thread.ThreadState & System.Threading.ThreadState.Unstarted) == System.Threading.ThreadState.Unstarted)
             {
                 m_thread.Start();
             }
@@ -110,28 +117,28 @@ namespace Dane
 
         private void ThreadMethod()
         {
+            BallLogger.Log(new StringBuilder("Ball ").Append(this._id).Append(" thread started").ToString(), LogType.DEBUG);
             Stopwatch stopwatch = new();
             stopwatch.Start();
             while (!m_endThread)
             {
-                    Pozycja lastPos = this.m_poz;
+                Pozycja lastPos = this.GetPoz();
 
-                    TimeSpan elapsed = stopwatch.Elapsed;
-                    stopwatch.Restart();
-                    Pozycja newPos = lastPos + (this.m_szybkosc * elapsed.TotalSeconds);
-                    this.m_poz = newPos;
-                lock (move_lock)
-                {
-                    OnPositionChanged?.Invoke(this, new PositionChangedEventArgs(lastPos, newPos, elapsed.TotalSeconds));
-                }
-                    Thread.Sleep(Math.Sqrt(this.m_szybkosc.X * this.m_szybkosc.X + this.m_szybkosc.Y * this.m_szybkosc.Y)>0?
+                TimeSpan elapsed = stopwatch.Elapsed;
+                this.SetPoz(this.GetPoz() + this.GetSzybkosc() * elapsed.TotalSeconds);
+                OnPositionChanged?.Invoke(this, new PositionChangedEventArgs(lastPos, this.m_szybkosc, elapsed.TotalSeconds));
+                Pozycja newPoz = this.GetPoz();
+                string message =this.ToString();
+                BallLogger.Log(message, LogType.DEBUG);
+                stopwatch.Restart();
+                Thread.Sleep(Math.Sqrt(this.m_szybkosc.X * this.m_szybkosc.X + this.m_szybkosc.Y * this.m_szybkosc.Y)>0?
                         (int)(10 /Math.Sqrt(this.m_szybkosc.X *this.m_szybkosc.X+this.m_szybkosc.Y*this.m_szybkosc.Y)):10);
             }
         }
 
         public void EndThread()
         {
-            if (this.m_thread.ThreadState == System.Threading.ThreadState.Background)
+            if ((this.m_thread.ThreadState & System.Threading.ThreadState.Background) == System.Threading.ThreadState.Background)
             {
                 this.m_endThread = true;
                 this.m_thread?.Join();
@@ -144,6 +151,12 @@ namespace Dane
 
         public void Dispose()
         {
+            Delegate[] delegates = OnPositionChanged?.GetInvocationList() ?? Array.Empty<Delegate>();
+            foreach (Delegate d in delegates)
+            {
+                OnPositionChanged -= (PositionChangedEventHandler)d;
+            }
+
             EndThread();
             GC.SuppressFinalize(this);
         }

@@ -12,7 +12,7 @@ namespace Model
         public abstract double ScenaWidth { get; set; }
         public abstract double ScenaHeight { get; set; }
 
-        public abstract void GenerateBalls(uint ballsNum, double minRadius, double maxRadius, double minVel, double maxVel);
+        public abstract void GenerateBalls(uint ballsNum, double minVel, double maxVel);
 
         public abstract void Start();
         public abstract void Stop();
@@ -39,7 +39,7 @@ namespace Model
             this._balls = new ObservableCollection<IKulaModel>();
         }
 
-        public override void GenerateBalls(uint ballsNum, double minRadius, double maxRadius, double minVel, double maxVel)
+        public override void GenerateBalls(uint ballsNum, double minVel, double maxVel)
         {
             this.logika.StworzKule(ballsNum, minVel, maxVel);
             this._balls = new ObservableCollection<IKulaModel>();

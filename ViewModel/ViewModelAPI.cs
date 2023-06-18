@@ -1,17 +1,36 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Model;
+using Dane;
 
 namespace ViewModel
 {
     public class ViewModelBase : INotifyPropertyChanged
     {
+        public Thread mainThread;
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public void OnPropertyChanged(string propertyName)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            try
+            {
+                Dispatcher.FromThread(mainThread).Invoke(new Action(() => { PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)); }));
+            }
+            catch
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
+        public ViewModelBase()
+        {
+            mainThread = Thread.CurrentThread;
         }
     }
     public class MainViewModel : ViewModelBase
@@ -19,6 +38,7 @@ namespace ViewModel
         public ModelApiBase model;
 
         public ObservableCollection<IKulaModel> Balls => model.Balls;
+        private object ballsLock = new();
 
         public double PlaneWidth
         {
@@ -83,6 +103,9 @@ namespace ViewModel
 
         public MainViewModel()
         {
+            BallLogger.SetMaxLogFileSizeKB(1024);
+            BallLogger.SetMaxLogFilesNum(25);
+            BallLogger.StartLogging();
             this.BallsNumber = 0;
             this.MaxBallsNumber = 0;
             this.GenerateBallsCommand = new GenerateBallsCommand(this);
@@ -90,6 +113,19 @@ namespace ViewModel
 
             this.model = ModelApiBase.GetApi();
             this.PropertyChanged += RecalculateMaxBallsNumber;
+        }
+        private async Task<bool> Generate(object? parameter)
+        {
+            return await Task.Run(() =>
+            {
+                lock (ballsLock)
+                {
+                    model.GenerateBalls(BallsNumber, MinBallVel, MaxBallVel);
+                    model.Start();
+                    OnPropertyChanged(nameof(Balls));
+                }
+                return true;
+            });
         }
 
         void RecalculateMaxBallsNumber(object? source, PropertyChangedEventArgs? e)

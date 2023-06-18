@@ -13,8 +13,6 @@ namespace Logika
     {
         private readonly Scena m_scena;
         private readonly DaneApiBase dane;
-        private readonly object m_lock = new object();
-        private readonly ILogger _logger = new Log();
 
         public List<IKula> Kule { get; private set; }
         public double ScenaWidth
@@ -57,12 +55,24 @@ namespace Logika
 
         public void StworzKule(uint ballsNum, double minSzybkosc, double maxSzybkosc)
         {
-            Kule = new List<IKula>();
+            Pozycja scenaPoz = new(ScenaWidth, ScenaHeight);
             for (int i = 0; i < ballsNum; i++)
             {
                 Kula newKula = this.dane.StworzKule(Pozycja.Zero, new Pozycja(ScenaWidth, ScenaHeight), minSzybkosc, maxSzybkosc);
+                while (IsInBall(newKula))
+                {
+                    double minX = Pozycja.Zero.X + newKula.GetPromien();
+                    double maxX = scenaPoz.X - newKula.GetPromien();
+
+                    double minY = Pozycja.Zero.Y + newKula.GetPromien();
+                    double maxY = scenaPoz.Y - newKula.GetPromien();
+
+                    Random rnd = new();
+                    newKula.SetPoz(new(rnd.NextDouble() * (maxX - minX) + minX, rnd.NextDouble() * (maxY - minY) + minY));
+                }
+
                 newKula.OnPositionChanged += CheckCollisions;
-                newKula.OnPositionChanged += LogPoz;
+                //newKula.OnPositionChanged += LogPoz;
                 Kule.Add(newKula);
             }
         }
@@ -92,132 +102,200 @@ namespace Logika
             }
             Kule.Clear();
         }
-        void LogPoz(object source, PositionChangedEventArgs e)
+        //void LogPoz(object source, PositionChangedEventArgs e)
+        //{
+        //IKula kula = (IKula)source;
+        //_logger.LogInfo($"{kula.ToString}");
+        //}
+        private bool IsInBall(IKula kula)
         {
-            IKula kula = (IKula)source;
-            _logger.LogInfo($"{kula.ToString}");
+            lock (Kule)
+            {
+                foreach (IKula k in Kule)
+                {
+                    double x = k.GetPoz().X - kula.GetPoz().X;
+                    double y = k.GetPoz().Y - kula.GetPoz().Y;
+                    double r = k.GetPromien() + kula.GetPromien();
+
+                    if (x * x + y * y < r * r)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private void CheckCollisions(object source, PositionChangedEventArgs e)
         {
-            IKula ball = (IKula)source;
-            Pozycja currVel = ball.GetSzybkosc();
-            Pozycja newPos = e.NewPoz;
-            lock (Kula.move_lock)
-            {
-                (newPos, currVel) = CheckCollisionsRecursion(e.LastPoz, newPos, currVel, ball.GetPromien(), e.ElapsedSeconds, ball.GetMasa(), Kule, ball);
-                if (currVel != ball.GetSzybkosc())
-                {
-                    ball.SetSzybkosc(currVel);
-                }
-
-                if (newPos != e.NewPoz)
-                {
-                    ball.SetPoz(newPos);
-                }
-            }
+            IKula kula = (IKula)source;
+            Pozycja lastPos = e.LastPoz;
+            Pozycja currVel = e.Szybkosc;
+            double totalTime = e.ElapsedSeconds;
+            double currentTime = totalTime;
+            (lastPos, currVel, currentTime) = CheckBallsCollisions(kula, lastPos, currVel, currentTime, totalTime);
+            (lastPos, currVel, currentTime) = CheckSceneBordersCollisions(kula, lastPos, currVel, currentTime, totalTime);
         }
 
-        private (Pozycja, Pozycja) CheckCollisionsRecursion(Pozycja lastPoz, Pozycja newPoz, Pozycja obecnaSzybkosc, double promien, double totalTime, double masa, List<IKula> inne, IKula kula, uint maxNum = 3, uint num = 0)
+        private (Pozycja, Pozycja, double) CheckBallsCollisions(IKula kula, Pozycja lastPos, Pozycja lastVel, double currentTime, double totalTime)
         {
-            Pozycja górnyLewyPunktSceny = new() { X = 0 + promien, Y = 0 + promien };
-            Pozycja górnyPrawyPunktSceny = new() { X = ScenaWidth - promien, Y = 0 + promien };
-            Pozycja dolnyPrawyPunktSceny = new() { X = ScenaWidth - promien, Y = ScenaHeight - promien };
-            Pozycja dolnyLewyPunktSceny = new() { X = 0 + promien, Y = ScenaHeight - promien };
-
-            if (totalTime > 0)
+            // Other Balls List (In Move Dist to current Ball)
+            double moveDist = lastVel.Length + kula.GetPromien();
+            List<(double, IKula)> nearBalls = new();
+            for (int j = 0; j < Kule.Count; j++)
             {
-                double tc;
-                if (newPoz.Y <= górnyLewyPunktSceny.Y && obecnaSzybkosc.Y < 0)
+                if (Kule[j] != kula)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, górnyLewyPunktSceny, górnyPrawyPunktSceny);
-                    if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
-                    {
-                        lastPoz = obecnaSzybkosc * tc + lastPoz;
-                        obecnaSzybkosc.Y *= -1;
-                        totalTime -= tc;
-                        newPoz = obecnaSzybkosc * totalTime + lastPoz;
-                    }
+                    double dist = Math.Clamp((Kule[j].GetPoz() - lastPos).Length - Kule[j].GetPromien(), 0, double.MaxValue);
+                    nearBalls.Add((dist, Kule[j]));
                 }
-
-                if (newPoz.X >= górnyPrawyPunktSceny.X && obecnaSzybkosc.X > 0)
+            }
+            // Sort By Dist
+            nearBalls = nearBalls.OrderBy((e1) => e1.Item1).ToList();
+            double tcmin, tcmax;
+            for (int j = 0; j < nearBalls.Count; j++)
+            {
+                (double dist, IKula k) = nearBalls[j];
+                Pozycja lastPos2 = k.GetPoz();
+                Pozycja vel2 = k.GetPoz();
+                (tcmin, tcmax) = CollisionManager.TimesOfCollisionWithBall(lastPos, lastVel, lastPos2, vel2, kula.GetPromien() + k.GetPromien());
+                if (tcmin != double.NegativeInfinity && tcmax != double.PositiveInfinity)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, górnyPrawyPunktSceny, dolnyPrawyPunktSceny);
-                    if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
+                    if (tcmin >= 0 && tcmax >= 0)
                     {
-                        lastPoz = obecnaSzybkosc * tc + lastPoz;
-                        obecnaSzybkosc.X *= -1;
-                        totalTime -= tc;
-                        newPoz = obecnaSzybkosc * totalTime + lastPoz;
-                    }
-                }
-
-                if (newPoz.Y >= dolnyPrawyPunktSceny.Y && obecnaSzybkosc.Y > 0)
-                {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, dolnyLewyPunktSceny, dolnyPrawyPunktSceny);
-                    if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
-                    {
-                        lastPoz = obecnaSzybkosc * tc + lastPoz;
-                        obecnaSzybkosc.Y *= -1;
-                        totalTime -= tc;
-                        newPoz = obecnaSzybkosc * totalTime + lastPoz;
-                    }
-                }
-
-                if (newPoz.X <= dolnyLewyPunktSceny.X && obecnaSzybkosc.X < 0)
-                {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPoz, obecnaSzybkosc, dolnyLewyPunktSceny, górnyLewyPunktSceny);
-                    if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
-                    {
-                        lastPoz = obecnaSzybkosc * tc + lastPoz;
-                        obecnaSzybkosc.X *= -1;
-                        totalTime -= tc;
-                        newPoz = obecnaSzybkosc * totalTime + lastPoz;
-                    }
-                }
-
-                foreach (var kulaInna in inne)
-                {
-                    if (kula.GetId() != kulaInna.GetId())
-                    {
-                        Pozycja deltaPozycji = new Pozycja(kulaInna.GetPoz().X - kula.GetPoz().X, kulaInna.GetPoz().Y - kula.GetPoz().Y);
-                        double sumaPromieni = kula.GetPromien() + kulaInna.GetPromien();
-                        double odleglosc = Math.Sqrt(deltaPozycji.X * deltaPozycji.X + deltaPozycji.Y * deltaPozycji.Y);
-                        double overlap = sumaPromieni - odleglosc;
-                        if (Math.Abs(overlap) > 0)
+                        if (tcmin <= currentTime)
                         {
-                            tc = CollisionManager.TimeOfCollisionWithBall(kula, kulaInna);
-                            if (tc != double.PositiveInfinity && tc >= 0 && tc <= totalTime)
-                            {
-                                Pozycja normal = new Pozycja(deltaPozycji.X / odleglosc, deltaPozycji.Y / odleglosc);
-                                Pozycja szybkosc1 = new Pozycja(kula.GetSzybkosc().X, kula.GetSzybkosc().Y);
-                                Pozycja szybkosc2 = new Pozycja(kulaInna.GetSzybkosc().X, kulaInna.GetSzybkosc().Y);
-                                double dotProduct1 = (szybkosc1.X * normal.X + szybkosc1.Y * normal.Y);
-                                double dotProduct2 = (szybkosc2.X * normal.X + szybkosc2.Y * normal.Y);
-                                double impulse1 = (2.0 * (dotProduct2 - dotProduct1)) / (kula.GetMasa() + kulaInna.GetMasa());
-                                //double impulse2 = (2.0 * (dotProduct1 - dotProduct2)) / (kula.GetMasa() + kulaInna.GetMasa());
-                                szybkosc1.X += impulse1 * normal.X;
-                                szybkosc1.Y += impulse1 * normal.Y;
-                                //szybkosc2.X += impulse2 * normal.X;
-                                //szybkosc2.Y += impulse2 * normal.Y;
-                                //kulaInna.SetSzybkosc(szybkosc2);
-                                //kula.SetSzybkosc(szybkosc1);
-                                lastPoz = obecnaSzybkosc * tc + lastPoz;
-                                obecnaSzybkosc.X = -szybkosc1.X;
-                                obecnaSzybkosc.Y = -szybkosc1.Y;
-                                totalTime -= tc;
-                                newPoz = obecnaSzybkosc * totalTime + lastPoz;
-                            }
+                            lastPos += lastVel * tcmin;
+                            kula.SetPoz(lastPos);
+                            Pozycja newPozycja = lastPos2 + vel2 * tcmin;
+                            k.SetPoz(newPozycja);
+                            //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
+                            (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, kula.GetMasa(), vel2, k.GetMasa());
+                            kula.SetSzybkosc(lastVel);
+                            k.SetSzybkosc(vel2);
+                            currentTime -= tcmin;
+                        }
+                    }
+                    else if (tcmin < 0 && tcmax >= 0)
+                    {
+                        if (tcmin >= currentTime - totalTime)
+                        {
+                            lastPos += lastVel * tcmin;
+                            kula.SetPoz(lastPos);
+                            Pozycja newPozycja = lastPos2 + vel2 * tcmin;
+                            k.SetPoz(newPozycja);
+                            //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
+                            (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, kula.GetMasa(), vel2, k.GetMasa());
+                            kula.SetSzybkosc(lastVel);
+                            k.SetSzybkosc(vel2);
+                            currentTime -= tcmin;
                         }
                     }
                 }
+                else if (tcmin != double.NegativeInfinity)
+                {
+                    if (tcmin >= 0 && tcmin <= currentTime)
+                    {
+                        lastPos += lastVel * tcmin;
+                        kula.SetPoz(lastPos);
+                        Pozycja newPozycja = lastPos2 + vel2 * tcmin;
+                        k.SetPoz(newPozycja);
+                        //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
+                        (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, kula.GetMasa(), vel2, k.GetMasa());
+                        kula.SetSzybkosc(lastVel);
+                        k.SetSzybkosc(vel2);
+                        currentTime -= tcmin;
+                    }
+                }
+                else if (tcmax != double.PositiveInfinity)
+                {
+                    if (tcmax >= 0 && tcmax <= currentTime)
+                    {
+                        lastPos += lastVel * tcmax;
+                        kula.SetPoz(lastPos);
+                        Pozycja newPozycja = lastPos2 + vel2 * tcmax;
+                        k.SetPoz(newPozycja);
+                        //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
+                        (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, kula.GetMasa(), vel2, k.GetMasa());
+                        kula.SetSzybkosc(lastVel);
+                        k.SetSzybkosc(vel2);
+                        currentTime -= tcmax;
+                    }
+                }
             }
 
-            if (++num >= maxNum)
+            return (lastPos, lastVel, currentTime);
+        }
+        private (Pozycja, Pozycja, double) CheckSceneBordersCollisions(IKula kula, Pozycja lastPos, Pozycja lastVel, double currentTime, double totalTime)
+        {
+            Pozycja górnyLewyPunktSceny = new() { X = 0 + kula.GetPromien(), Y = 0 + kula.GetPromien() };
+            Pozycja górnyPrawyPunktSceny = new() { X = ScenaWidth - kula.GetPromien(), Y = 0 + kula.GetPromien() };
+            Pozycja dolnyPrawyPunktSceny = new() { X = ScenaWidth - kula.GetPromien(), Y = ScenaHeight - kula.GetPromien() };
+            Pozycja dolnyLewyPunktSceny = new() { X = 0 + kula.GetPromien(), Y = ScenaHeight - kula.GetPromien() };
+
+            if (currentTime >= 0)
             {
-                return (newPoz, obecnaSzybkosc);
+                double tc;
+                // Plane Top Line:
+                if (lastVel.Y < 0 && lastPos.Y > górnyLewyPunktSceny.Y)
+                {
+                    tc = CollisionManager.TimeOfCollisionWithLine(lastPos, lastVel, górnyLewyPunktSceny, górnyPrawyPunktSceny,Pozycja.Zero);
+                    if (tc != double.PositiveInfinity && tc >= 0 && tc <= currentTime)
+                    {
+                        lastPos += lastVel * tc;
+                        kula.SetPoz(lastPos);
+                        lastVel.Y *= -1;
+                        kula.SetSzybkosc(lastVel);
+                        currentTime -= tc;
+                    }
+                }
+
+                // Plane Right Line
+                if (lastVel.X > 0 && lastPos.X < górnyPrawyPunktSceny.X)
+                {
+                    tc = CollisionManager.TimeOfCollisionWithLine(lastPos, lastVel, górnyPrawyPunktSceny, dolnyPrawyPunktSceny, Pozycja.Zero);
+                    if (tc != double.PositiveInfinity && tc >= 0 && tc <= currentTime)
+                    {
+                        lastPos += lastVel * tc;
+                        kula.SetPoz(lastPos);
+                        lastVel.X *= -1;
+                        kula.SetSzybkosc(lastVel);
+                        currentTime -= tc;
+                    }
+                }
+
+                // Plane Bottom Line:
+                if (lastVel.Y > 0 && lastPos.Y < dolnyPrawyPunktSceny.Y)
+                {
+                    tc = CollisionManager.TimeOfCollisionWithLine(lastPos, lastVel, dolnyLewyPunktSceny, dolnyPrawyPunktSceny, Pozycja.Zero);
+                    if (tc != double.PositiveInfinity && tc >= 0 && tc <= currentTime)
+                    {
+                        lastPos += lastVel * tc;
+                        kula.SetPoz(lastPos);
+                        lastVel.Y *= -1;
+                        kula.SetSzybkosc(lastVel);
+                        currentTime -= tc;
+                    }
+                }
+
+                // Plane Left Line
+                if (lastVel.X < 0 && lastPos.X < dolnyLewyPunktSceny.X)
+                {
+                    tc = CollisionManager.TimeOfCollisionWithLine(lastPos, lastVel, dolnyLewyPunktSceny, górnyLewyPunktSceny, Pozycja.Zero);
+                    if (tc != double.PositiveInfinity && tc >= 0 && tc <= currentTime)
+                    {
+                        lastPos += lastVel * tc;
+                        kula.SetPoz(lastPos);
+                        lastVel.X *= -1;
+                        kula.SetSzybkosc(lastVel);
+                        currentTime -= tc;
+                    }
+                }
+
+                kula.SetPoz(lastPos + lastVel * currentTime);
             }
-            return CheckCollisionsRecursion(lastPoz, newPoz, obecnaSzybkosc, promien, totalTime, masa, inne, kula, maxNum, num);
+            return (lastPos, lastVel, currentTime);
         }
 
         public void Dispose()
@@ -228,69 +306,147 @@ namespace Logika
     }
     internal class CollisionManager
     {
-        public static double TimeOfCollisionWithLine(Pozycja startObjPos, Pozycja objVel, Pozycja linePoint1, Pozycja linePoint2)
+        public static double TimeOfCollisionWithLine(Pozycja startObjPos, Pozycja objVel, Pozycja linePoint1, Pozycja linePoint2, Pozycja lineVel)
         {
-            double xDiff = linePoint2.X - linePoint1.X;
-            double tc;
-            if (xDiff != 0)
-            {
-                double a = (linePoint2.Y - linePoint1.Y) / xDiff;
-                double b = linePoint1.Y - a * linePoint1.X;
+            if (objVel == Pozycja.Zero && lineVel == Pozycja.Zero) return double.PositiveInfinity;
+            if (objVel - lineVel == Pozycja.Zero) return double.PositiveInfinity;
 
-                tc = (objVel.Y - a * objVel.X) != 0 ? (a * startObjPos.X + b - startObjPos.Y) / (objVel.Y - a * objVel.X) : double.PositiveInfinity;
-            }
-            else
-            {
-                tc = objVel.X != 0 ? (linePoint1.X - startObjPos.X) / objVel.X : double.PositiveInfinity;
-            }
+            // Ax + By + C = 0
+            double A = linePoint1.Y - linePoint2.Y;
+            double B = linePoint2.X - linePoint1.X;
+            double C = (linePoint1.X * linePoint2.Y) - (linePoint2.X * linePoint1.Y);
 
-            if (tc != double.PositiveInfinity)
-            {
-                // punkt kolizji
-                Pozycja c = objVel * tc + startObjPos;
+            double tc = (-A * startObjPos.X - B * startObjPos.Y - C) / (A * objVel.X + B * objVel.Y);
+            if (tc < 0) return double.PositiveInfinity;
 
-                // minimalny i maksymalna wartość x
-                double minX = linePoint1.X > linePoint2.X ? linePoint2.X : linePoint1.X;
-                double maxX = linePoint1.X > linePoint2.X ? linePoint1.X : linePoint2.X;
+            // Sprawdzanie czy punkt leży na lini ograniczonej punktami
+            Pozycja cPos = startObjPos + objVel * tc;
+            Pozycja lPos1 = linePoint1 * tc;
 
-                // minimalna i maksymalna wartość y
-                double minY = linePoint1.Y > linePoint2.Y ? linePoint2.Y : linePoint1.Y;
-                double maxY = linePoint1.Y > linePoint2.Y ? linePoint1.Y : linePoint2.Y;
+            // dx = B
+            // dy = -A
+            Pozycja d = new(B, -A);
+            // rx = cp.x - lp1.x
+            // ry = cp.y - lp1.y
+            Pozycja r = cPos - lPos1;
+            // d_p = dx * rx + dy * ry
+            double dot_product = d.DotProduct(r);
+            // l_s = dx * dx + dy * dy
+            double length_squared = d.DotProduct(d);
 
-                if (c.X < minX || c.X > maxX || c.Y < minY || c.Y > maxY)
-                {
-                    tc = double.PositiveInfinity;
-                }
-            }
+            if (dot_product < 0 || dot_product > length_squared)
+                return double.PositiveInfinity;
 
             return tc;
         }
-        public static double TimeOfCollisionWithBall(IKula kula1, IKula kula2)
+        public static (double, double) TimesOfCollisionWithStaticBall(Pozycja objPos, Pozycja objVel, Pozycja ballPos, double radius, double startAngle = 0, double endAngle = 0)
         {
-            double a = Math.Pow(kula1.GetSzybkosc().X - kula2.GetSzybkosc().X, 2) + Math.Pow(kula1.GetSzybkosc().Y - kula2.GetSzybkosc().Y, 2);
-            double b = 2 * ((kula1.GetSzybkosc().X - kula2.GetSzybkosc().X) * (kula1.GetPoz().X - kula2.GetPoz().X) + (kula1.GetSzybkosc().Y - kula2.GetSzybkosc().Y) * (kula1.GetPoz().Y - kula2.GetPoz().Y));
-            double c = Math.Pow(kula1.GetPoz().X - kula2.GetPoz().X, 2) + Math.Pow(kula1.GetPoz().Y - kula2.GetPoz().Y, 2) - 4 * Math.Pow(kula1.GetMasa(), 2);
-            if (a == 0)
+            return TimesOfCollisionWithBall(objPos, objVel, ballPos, Pozycja.Zero, radius, startAngle, endAngle);
+        }
+        public static (double,double) TimesOfCollisionWithBall(Pozycja objPos, Pozycja objVel, Pozycja ballPos, Pozycja ballVel, double radius, double startAngle = 0, double endAngle = 0)
+        {
+            if (radius == 0) return (double.NegativeInfinity, double.PositiveInfinity);
+
+            // Wypadkowe Vel (xv - xov, yv - yov)
+            Pozycja wypVel = objVel - ballVel;
+            // Wypadkowe Pos (xs - xo, ys - yo)
+            Pozycja wypPos = objPos - ballPos;
+
+            // at^2 + bt + c = 0
+            double a = wypVel.X * wypVel.X + wypVel.Y * wypVel.Y;
+            double b = 2 * (wypPos.X * wypVel.X + wypPos.Y * wypVel.Y);
+            double c = wypPos.X * wypPos.X + wypPos.Y * wypPos.Y - radius * radius;
+
+            // delt = b^2 - 4ac
+            double delt = b * b - 4 * a * c;
+            if (delt <= 0) return (double.NegativeInfinity, double.PositiveInfinity);
+
+            double t1 = (-b - Math.Sqrt(delt)) / (2 * a);
+            double t2 = (-b + Math.Sqrt(delt)) / (2 * a);
+
+            if (t1 >= 0 || t2 >= 0)
             {
-                return double.PositiveInfinity;
+                // test start i end Angle:
+                startAngle %= 360;
+                endAngle %= 360;
+                if (endAngle < startAngle)
+                {
+                    (endAngle, startAngle) = (startAngle, endAngle);
+                }
+
+                // Testowanie czy należą pozycje kolizji do łuku rysowanego od startAngle do endAngle
+                double tmin = Math.Min(t1, t2);
+                double tmax = Math.Max(t1, t2);
+                if (startAngle == endAngle) return (tmin, tmax);
+
+                // Testowanie czy min(t1, t2) należy do łuku
+                Pozycja cPos = objPos + objVel * tmin;
+                Pozycja bPos = ballPos + ballVel * tmin;
+
+                double cos = (cPos.X - bPos.X) / radius;
+                double radians = Math.Asin((cPos.Y - bPos.Y) / radius);
+                if (cos < 0) radians += Math.PI;
+
+                double alpha = ((radians * 180) / Math.PI) % 360;
+                if (alpha < startAngle || alpha > endAngle) tmin = double.NegativeInfinity;
+
+                // Testowanie czy max(t1, t2) należy do łuku
+                cPos = objPos + objVel * tmax;
+                bPos = ballPos + ballVel * tmax;
+
+                cos = (cPos.X + bPos.X) / radius;
+                radians = Math.Asin((cPos.Y - bPos.Y) / radius);
+                if (cos < 0) radians += Math.PI;
+
+                alpha = ((radians * 180) / Math.PI) % 360;
+                if (alpha < startAngle || alpha > endAngle) tmax = double.PositiveInfinity;
+
+                return (tmin, tmax);
             }
 
-            double delta = b * b - 4 * a * c;
-            if (delta < 0)
-            {
-                return double.PositiveInfinity;
-            }
+            return (double.NegativeInfinity, double.PositiveInfinity);
+        }
+        public static (Pozycja, Pozycja) VelocitiesAfterCollision(Pozycja vel1, double mass1, Pozycja vel2, double mass2)
+        {
+            if (mass1 == 0 && mass2 == 0) return (Pozycja.Zero, Pozycja.Zero);
 
-            double t1 = (-b - Math.Sqrt(delta)) / (2 * a);
-            double t2 = (-b + Math.Sqrt(delta)) / (2 * a);
+            double massSum = mass1 + mass2;
+            Pozycja newVel1 = ((mass1 - mass2) * vel1 + 2 * mass2 * vel2) / massSum;
+            Pozycja newVel2 = (2 * mass1 * vel1 + (mass2 - mass1) * vel2) / massSum;
 
-            if (t1 < 0 && t2 < 0)
-            {
-                return double.PositiveInfinity;
-            }
+            return (newVel1, newVel2);
+        }
+        public static (Pozycja, Pozycja) VelocitiesAfterBallsCollision(Pozycja vel1, double mass1, Pozycja center1, Pozycja vel2, double mass2, Pozycja center2)
+        {
+            if (mass1 == 0 && mass2 == 0) return (Pozycja.Zero, Pozycja.Zero);
 
-            double tc = Math.Min(t1, t2);
-            return tc;
+            Pozycja centerLine = (center1 - center2);
+            if (centerLine.X < 0) centerLine *= -1;
+
+            // Kąt pomiędzy osią X a linią łączącą środki kul
+            double alpha = Math.Acos(centerLine.X / centerLine.Length);
+            // Kąt pomiędzy linią łączącą środki kul a wektorem prędkości pierwszej kuli
+            double theta1 = Math.Acos(vel1.X / vel1.Length);
+            // Kąt pomiędzy linią łączącą środki kul a wektorem prędkości pierwszej kuli
+            double theta2 = Math.Acos(vel2.X / vel2.Length);
+
+            double massSum = mass1 + mass2;
+
+            // Nowy wektor prędkości dla 1 ciała
+            double v1FirstHalf = vel1.Length * Math.Cos(theta1 - alpha) * (mass1 - mass2) + 2 * mass2 * vel2.Length * Math.Cos(theta2 - alpha);
+            double v1SecondHalf = vel1.Length * Math.Sin(theta1 - alpha);
+            double v1x = (v1FirstHalf * Math.Cos(alpha)) / massSum + v1SecondHalf * Math.Cos(alpha + Math.PI / 2);
+            double v1y = (v1FirstHalf * Math.Sin(alpha)) / massSum + v1SecondHalf * Math.Sin(alpha + Math.PI / 2);
+            Pozycja newVel1 = new(v1x, v1y);
+
+            // Nowy wektor prędkości dla 2 ciała
+            double v2FirstHalf = vel2.Length * Math.Cos(theta2 - alpha) * (mass2 - mass1) + 2 * mass1 * vel1.Length * Math.Cos(theta1 - alpha);
+            double v2SecondHalf = vel2.Length * Math.Sin(theta2 - alpha);
+            double v2x = (v2FirstHalf * Math.Cos(alpha)) / massSum + v2SecondHalf * Math.Cos(alpha + Math.PI / 2);
+            double v2y = (v2FirstHalf * Math.Sin(alpha)) / massSum + v2SecondHalf * Math.Sin(alpha + Math.PI / 2);
+            Pozycja newVel2 = new(v2x, v2y);
+
+            return (newVel1, newVel2);
         }
     }
 }

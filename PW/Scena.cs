@@ -4,6 +4,8 @@
     {
         private double m_szerokosc;
         private double m_wysokosc;
+        private object width_lock = new();
+        private object height_lock = new();
 
         public Scena(double szerokosc, double wysokosc)
         {
@@ -13,22 +15,34 @@
 
         public void SetWidth(double szerokosc)
         {
-            this.m_szerokosc = szerokosc;
+            lock (width_lock)
+            {
+                this.m_szerokosc = szerokosc;
+            }
         }
 
         public void SetHeight(double wysokosc)
         {
-            this.m_wysokosc = wysokosc;
+            lock (height_lock)
+            {
+                this.m_wysokosc = wysokosc;
+            }
         }
 
         public double GetWidth()
         {
-            return m_szerokosc;
+            lock (width_lock)
+            {
+                return m_szerokosc;
+            }
         }
 
         public double GetHeight()
         {
-            return m_wysokosc;
+            lock (height_lock)
+            {
+                return m_wysokosc;
+            }
         }
     }
 }

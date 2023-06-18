@@ -38,7 +38,7 @@ namespace ViewModel
 
         public override void Execute(object? parameter)
         {
-            this.m_mainView.model.GenerateBalls(this.m_mainView.BallsNumber, MainViewModel.MinBallRadius, MainViewModel.MaxBallRadius, MainViewModel.MinBallVel, MainViewModel.MaxBallVel);
+            this.m_mainView.model.GenerateBalls(this.m_mainView.BallsNumber, MainViewModel.MinBallVel, MainViewModel.MaxBallVel);
             this.m_mainView.OnPropertyChanged(nameof(this.m_mainView.Balls));
             MessageBox.Show("Generated " + m_mainView.BallsNumber + " Balls", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             this.m_mainView.model.Start();

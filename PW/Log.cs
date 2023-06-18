@@ -8,109 +8,125 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Reflection.Metadata;
 using System.Threading;
+using System.IO;
 
 namespace Dane
 {
-    public enum LogSetting
+    public enum LogType { INFO, WARNING, ERROR, FATAL, DEBUG }
+    public static class BallLogger
     {
-        Info = 0,
-        Warn = 1,
-        Error = 2
-    }
-    public struct LogAccess
-    {
-        public readonly string TimeStamp;
-        public readonly int LineNumber;
-        public readonly string Msg;
+        private static uint currLogFileNum = 0;
+        private static uint maxLogFilesNum = 10;
+        private static uint maxLogFileSizeKB = 256; // in KB
 
-        public readonly LogSetting Setting;
+        private static readonly Queue<string> messagesToSave = new();
 
-        public LogAccess(LogSetting setting, string message, int lineNumber)
+        private static Timer saveTaskTimer = null;
+        private static bool saving = false;
+
+        private static async void AddToBuffer(string message)
         {
-            TimeStamp = DateTime.Now.ToString("dd-MM-yyyy - HH:mm:ss:fff");
-            LineNumber = lineNumber;
-            Msg = message;
-            Setting = setting;
-        }
-    }
-    public class Log : ILogger, IDisposable
-    {
-        private readonly object writeLock = new();
-
-        private readonly ILogWriter _logZapis;
-        private readonly ConcurrentQueue<LogAccess> _logQueue = new();
-        private readonly List<LogAccess> logAccesses = new();
-
-        private bool _logging;
-
-        public Log(string fileName = "")
-       : this(new LogWriter(fileName))
-        { }
-        public Log(ILogWriter logWriter)
-        {
-            _logZapis = logWriter;
-            _logging = false;
-
-            Start();
-        }
-
-        public void LogInfo(string msg, [CallerLineNumber] int lineNumber = -1) => CrLog(msg, LogSetting.Info, lineNumber);
-        public void LogWarning(string msg, [CallerLineNumber] int lineNumber = -1) => CrLog(msg, LogSetting.Warn, lineNumber);
-        public void LogError(string msg, [CallerLineNumber] int lineNumber = -1) => CrLog(msg, LogSetting.Error, lineNumber);
-
-        private void CrLog(string msg, LogSetting setting, int lineNumber)
-        {
-            if (!_logging) return;
-
-            _logQueue.Enqueue(new LogAccess(setting, msg, lineNumber));
-        }
-
-        private void Start()
-        {
-            if (_logging) return;
-            _logging = true;
-            Timer atime = new Timer(new TimerCallback(WriteLoop), null, 0, 2000);
-        }
-
-        private void Stop()
-        {
-            _logging = false;
-
-            ZapisLogi();
-        }
-
-        private async void WriteLoop(object o)
-        {
-                try
-                {
-                    ZapisLogi();
-                }
-                catch (Exception ex)
-                {
-                    Trace.WriteLine(ex.Message);
-                }
-        }
-
-        private void ZapisLogi()
-        {
-            lock (writeLock)
+            await Task.Run(() =>
             {
-                if (_logQueue.IsEmpty) return;
-
-                logAccesses.Clear();
-                logAccesses.AddRange(_logQueue);
-                _logQueue.Clear();
-                _logZapis.Write(logAccesses);
-            }
+                lock (messagesToSave)
+                {
+                    messagesToSave.Enqueue(message);
+                }
+            });
         }
 
-        public void Dispose()
+        private static string GetLogsDirPath()
         {
-            GC.SuppressFinalize(this);
+            return new StringBuilder("./.logs").ToString();
+        }
 
-            Stop();
-            _logZapis.Dispose();
+        private static string GetLogFilePath()
+        {
+            return new StringBuilder(GetLogsDirPath()).Append("/LOG").Append(currLogFileNum).Append(".log").ToString();
+            //return new StringBuilder(GetLogsDirPath()).Append("/LOG_").Append(DateTime.Now.ToString("yyyyMMddHHmmssff")).Append(".log").ToString();
+        }
 
+        private static void SaveTask()
+        {
+            if (!saving)
+            {
+                saving = true;
+                lock (messagesToSave)
+                {
+                    int num = messagesToSave.Count;
+                    while (num > 0)
+                    {
+                        FileInfo logFileInfo = new(GetLogFilePath());
+                        if (logFileInfo.Length >= maxLogFileSizeKB * 1024)
+                        {
+                            currLogFileNum = (currLogFileNum + 1) % maxLogFilesNum;
+                            logFileInfo = new(GetLogFilePath());
+                            logFileInfo.Create().Close();
+                        }
+                        using (StreamWriter writer = logFileInfo.AppendText())
+                        {
+                            writer.WriteLine(messagesToSave.Dequeue());
+                        }
+                        num--;
+                    }
+                }
+                saving = false;
+            }
+
+            /*if (!saving)
+            {
+                saving = true;
+                lock (messagesToSave)
+                {
+                    if (messagesToSave.Count > 0)
+                    {
+                        FileInfo logFileInfo = new(GetLogFilePath());
+                        using (StreamWriter writer = new(logFileInfo.Create()))
+                        {
+                            while (messagesToSave.Count > 0)
+                            {
+                                writer.WriteLine(messagesToSave.Dequeue());
+                            }
+                        }
+                    }
+                }
+                saving = false;
+            }*/
+        }
+
+        public static void StartLogging()
+        {
+            DirectoryInfo directoryInfo = new(GetLogsDirPath());
+            if (!directoryInfo.Exists)
+            {
+                directoryInfo.Create();
+            }
+            // Dla drugiej wersji zakomentuj 2 linijki
+            FileInfo logFileInfo = new(GetLogFilePath());
+            logFileInfo.Create().Close();
+            saveTaskTimer = new(new TimerCallback((obj) => { SaveTask(); }), null, 0, 1000);
+        }
+
+        public static void StopLogging()
+        {
+            saveTaskTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        }
+
+        public static void Log(string message, LogType type)
+        {
+            DateTime logTime = DateTime.Now;
+            StringBuilder sb = new StringBuilder(logTime.ToString("F")).Append(logTime.ToString(":ff")).Append(" [").Append(type.ToString()).Append("] ").Append(message);
+            AddToBuffer(sb.ToString());
+        }
+
+        public static void SetMaxLogFilesNum(uint value)
+        {
+            maxLogFilesNum = value;
+        }
+
+        public static void SetMaxLogFileSizeKB(uint value)
+        {
+            maxLogFileSizeKB = value;
         }
     }
 }

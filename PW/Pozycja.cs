@@ -29,15 +29,32 @@ namespace Dane
         {
             return new Pozycja { X = left.X * right, Y = left.Y * right };
         }
+        public static Pozycja operator *(double left, Pozycja right)
+        {
+            return new Pozycja { X = right.X * left, Y = right.Y * left };
+        }
+
+        public static Pozycja operator /(Pozycja left, double right)
+        {
+            return new Pozycja { X = left.X / right, Y = left.Y / right };
+        }
 
         public static Pozycja operator +(Pozycja left, Pozycja right)
         {
             return new Pozycja { X = left.X + right.X, Y = left.Y + right.Y };
         }
+        public static Pozycja operator +(Pozycja pos)
+        {
+            return new Pozycja { X = pos.X, Y = pos.Y };
+        }
 
         public static Pozycja operator -(Pozycja left, Pozycja right)
         {
             return new Pozycja { X = left.X - right.X, Y = left.Y - right.Y };
+        }
+        public static Pozycja operator -(Pozycja pos)
+        {
+            return new Pozycja { X = -pos.X, Y = -pos.Y };
         }
 
         public static bool operator ==(Pozycja left, Pozycja right)
@@ -58,7 +75,7 @@ namespace Dane
         {
             get
             {
-                return X * X + Y * Y;
+                return Math.Sqrt(X * X + Y * Y);
             }
         }
         public Pozycja Normalize
@@ -73,10 +90,6 @@ namespace Dane
         {
             return this.X * other.X + this.Y * other.Y;
         }
-        //public double CalculateAngle(Pos2D other)
-        //{
-            //return Math.Acos(this.DotProduct(other) / (this.Length * other.Length));
-        //}
 
         public override bool Equals(object? obj)
         {

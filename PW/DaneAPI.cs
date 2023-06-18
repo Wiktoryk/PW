@@ -26,19 +26,15 @@ namespace Dane
             double minY = minPoz.Y + radius;
             double maxY = maxPoz.Y - radius;
 
-            double temp;
+            //double temp;
             if (minX > maxX)
             {
-                temp = minX;
-                minX = maxX;
-                maxX = temp;
+                (minX, maxX) = (maxX, minX);
             }
 
             if (minY > maxY)
             {
-                temp = minY;
-                minY = maxY;
-                maxY = temp;
+                (minY, maxY) = (maxY, minY);
             }
 
             Pozycja poz = new(rnd.NextDouble() * (maxX - minX) + minX, rnd.NextDouble() * (maxY - minY) + minY);
