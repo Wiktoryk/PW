@@ -4,21 +4,24 @@ namespace Dane
 {
     public interface IKula : INotifyPositionChanged, IDisposable
     {
-        #region KulaBase
-        void SetPromien(double promien);
-        void SetPoz(Pozycja poz);
-        void SetSzybkosc(Pozycja szybkosc);
-        //void SetMasa(double masa);
+        #region BallBase
+
+        void SetMasa(double mass);
+        void SetPromien(double radius);
+        void SetSrednica(double diameter);
+        void SetPoz(Pozycja pos);
+        void SetSzybkosc(Pozycja vel);
         long GetId();
+        double GetMasa();
         double GetPromien();
+        double GetSrednica();
         Pozycja GetPoz();
         Pozycja GetSzybkosc();
-        double GetMasa();
-        string? ToString();
 
-        #endregion KulaBase
+        #endregion BallBase
 
         #region Thread
+
         void StartThread();
         void EndThread();
 

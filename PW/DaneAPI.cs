@@ -1,12 +1,12 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
+using System;
 
 namespace Dane
 {
     public abstract class DaneApiBase
     {
-        public abstract Kula StworzKule(Pozycja minPoz, Pozycja maxPoz, double minSzybkosc, double maxSzybkosc);
-        public abstract Scena StworzScene(double szerokosc, double wysokosc);
+        public abstract Kula StworzKule(double minMass, double maxMass, double minRadius, double maxRadius, Pozycja minPos, Pozycja maxPos, double minVel, double maxVel);
+        public abstract Scena StworzScene(double width, double height);
 
         public static DaneApiBase GetApi()
         {
@@ -15,18 +15,20 @@ namespace Dane
     }
     internal class DaneApi : DaneApiBase
     {
-        public override Kula StworzKule(Pozycja minPoz, Pozycja maxPoz, double minSzybkosc, double maxSzybkosc)
+        public override Kula StworzKule(double minMass, double maxMass, double minRadius, double maxRadius, Pozycja minPos, Pozycja maxPos, double minVel, double maxVel)
         {
             Random rnd = new();
-            double radius = 20;
+            double randVal = rnd.NextDouble();
+            double radius = randVal * (maxRadius - minRadius) + minRadius;
 
-            double minX = minPoz.X + radius;
-            double maxX = maxPoz.X - radius;
+            double mass = randVal * (maxMass - minMass) + minMass;
 
-            double minY = minPoz.Y + radius;
-            double maxY = maxPoz.Y - radius;
+            double minX = minPos.X + radius;
+            double maxX = maxPos.X - radius;
 
-            //double temp;
+            double minY = minPos.Y + radius;
+            double maxY = maxPos.Y - radius;
+
             if (minX > maxX)
             {
                 (minX, maxX) = (maxX, minX);
@@ -37,15 +39,15 @@ namespace Dane
                 (minY, maxY) = (maxY, minY);
             }
 
-            Pozycja poz = new(rnd.NextDouble() * (maxX - minX) + minX, rnd.NextDouble() * (maxY - minY) + minY);
-            Pozycja szybkosc = new(rnd.NextDouble() * (maxSzybkosc - minSzybkosc) + minSzybkosc, rnd.NextDouble() * (maxSzybkosc - minSzybkosc) + minSzybkosc);
+            Pozycja pos = new(rnd.NextDouble() * (maxX - minX) + minX, rnd.NextDouble() * (maxY - minY) + minY);
+            Pozycja vel = new(rnd.NextDouble() * (maxVel - minVel) + minVel, rnd.NextDouble() * (maxVel - minVel) + minVel);
 
-            return new Kula(rnd.NextInt64(), radius, poz, szybkosc);
+            return new Kula(rnd.NextInt64(), mass, radius, pos, vel);
         }
 
-        public override Scena StworzScene(double szerokosc, double wysokosc)
+        public override Scena StworzScene(double width, double height)
         {
-            return new Scena(szerokosc, wysokosc);
+            return new Scena(width, height);
         }
     }
 }

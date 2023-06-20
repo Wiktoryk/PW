@@ -7,52 +7,70 @@ namespace Dane
 {
     public class Kula : IKula
     {
-        #region KulaBase
+        #region BallBase
 
         private readonly long _id;
+        private double m_masa;
         private double m_promien;
         private Pozycja m_poz;
         private Pozycja m_szybkosc;
-        private double masa;
-        private static readonly object poz_lock = new object();
-        private static readonly object vel_lock = new object();
-        private static readonly object promien_lock = new object();
 
-        public Kula(long id, double promien, Pozycja poz, Pozycja szybkosc)
+        private readonly object masa_lock = new();
+        private readonly object promien_lock = new();
+        private readonly object poz_lock = new();
+        private readonly object szybkosc_lock = new();
+
+        public Kula(long id, double masa, double promien, Pozycja poz, Pozycja szybkosc)
         {
             this._id = id;
+            this.m_masa = masa;
             this.m_promien = promien;
             this.m_poz = poz;
             this.m_szybkosc = szybkosc;
-            this.masa = 20.0;
             this.m_endThread = false;
-            this.m_thread = new Thread(new ThreadStart(this.ThreadMethod))
+            this.m_thread = new Thread(new ThreadStart(ThreadMethod))
             {
                 IsBackground = true
             };
         }
 
-        public void SetPromien(double promien)
+        public void SetMasa(double mass)
         {
-            lock (promien_lock)
+            lock (this.masa_lock)
             {
-                this.m_promien = promien;
+                this.m_masa = mass;
             }
         }
 
-        public void SetPoz(Pozycja poz)
+        public void SetPromien(double radius)
         {
-            lock (poz_lock)
+            lock (this.promien_lock)
             {
-                this.m_poz = poz;
+                this.m_promien = radius;
             }
         }
 
-        public void SetSzybkosc(Pozycja szybkosc)
+        public void SetSrednica(double diameter)
         {
-            lock (vel_lock)
+            lock (this.promien_lock)
             {
-                this.m_szybkosc = szybkosc;
+                this.m_promien = diameter / 2;
+            }
+        }
+
+        public void SetPoz(Pozycja pos)
+        {
+            lock (this.poz_lock)
+            {
+                this.m_poz = pos;
+            }
+        }
+
+        public void SetSzybkosc(Pozycja vel)
+        {
+            lock (this.szybkosc_lock)
+            {
+                this.m_szybkosc = vel;
             }
         }
 
@@ -61,17 +79,33 @@ namespace Dane
             return this._id;
         }
 
+        public double GetMasa()
+        {
+            lock (this.masa_lock)
+            {
+                return this.m_masa;
+            }
+        }
+
         public double GetPromien()
         {
-            lock (promien_lock)
+            lock (this.promien_lock)
             {
                 return this.m_promien;
             }
         }
 
+        public double GetSrednica()
+        {
+            lock (this.promien_lock)
+            {
+                return this.m_promien * 2;
+            }
+        }
+
         public Pozycja GetPoz()
         {
-            lock (poz_lock)
+            lock (this.poz_lock)
             {
                 return this.m_poz;
             }
@@ -79,22 +113,13 @@ namespace Dane
 
         public Pozycja GetSzybkosc()
         {
-            lock (vel_lock)
+            lock (this.szybkosc_lock)
             {
                 return this.m_szybkosc;
             }
         }
 
-        public double GetMasa()
-        {
-            return this.masa;
-        }
-        public override string? ToString()
-        {
-            return $"Kula Poz=[{GetPoz().X:n1}, {GetPoz().Y:n1}], S=[{GetSzybkosc().X:n1}, {GetSzybkosc().Y:n1}]";
-        }
-
-        #endregion KulaBase
+        #endregion BallBase
 
         #region INotifyPositionChanged
 
@@ -113,6 +138,10 @@ namespace Dane
             {
                 m_thread.Start();
             }
+            else
+            {
+                BallLogger.Log(new StringBuilder("Tried to start thread which was already Started or not in Background State for Ball ").Append(this._id).ToString(), LogType.WARNING);
+            }
         }
 
         private void ThreadMethod()
@@ -122,18 +151,28 @@ namespace Dane
             stopwatch.Start();
             while (!m_endThread)
             {
-                Pozycja lastPos = this.GetPoz();
+                Pozycja lastPoz = this.GetPoz();
 
                 TimeSpan elapsed = stopwatch.Elapsed;
                 this.SetPoz(this.GetPoz() + this.GetSzybkosc() * elapsed.TotalSeconds);
-                OnPositionChanged?.Invoke(this, new PositionChangedEventArgs(lastPos, this.m_szybkosc, elapsed.TotalSeconds));
+                OnPositionChanged?.Invoke(this, new PositionChangedEventArgs(lastPoz, this.m_szybkosc, elapsed.TotalSeconds));
+
                 Pozycja newPoz = this.GetPoz();
-                string message =this.ToString();
+                string message = new StringBuilder("Ball ")
+                                    .Append(_id)
+                                    .Append(" changed position from {x=").Append(lastPoz.X)
+                                    .Append(", y=").Append(lastPoz.Y)
+                                    .Append("} to {x=").Append(newPoz.X)
+                                    .Append(", y=").Append(newPoz.Y)
+                                    .Append("} in ").Append(elapsed.TotalSeconds).Append(" seconds")
+                                    .ToString();
                 BallLogger.Log(message, LogType.DEBUG);
+
                 stopwatch.Restart();
-                Thread.Sleep(Math.Sqrt(this.m_szybkosc.X * this.m_szybkosc.X + this.m_szybkosc.Y * this.m_szybkosc.Y)>0?
-                        (int)(10 /Math.Sqrt(this.m_szybkosc.X *this.m_szybkosc.X+this.m_szybkosc.Y*this.m_szybkosc.Y)):10);
+                Thread.Sleep(5);
             }
+
+            BallLogger.Log(new StringBuilder("Ball ").Append(this._id).Append(" thread ended").ToString(), LogType.DEBUG);
         }
 
         public void EndThread()
@@ -142,6 +181,10 @@ namespace Dane
             {
                 this.m_endThread = true;
                 this.m_thread?.Join();
+            }
+            else
+            {
+                BallLogger.Log(new StringBuilder("Tried to stop thread which was not in Background State for Ball ").Append(this._id).ToString(), LogType.WARNING);
             }
         }
 

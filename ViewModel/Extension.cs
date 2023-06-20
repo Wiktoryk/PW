@@ -69,3 +69,4 @@ namespace ViewModel
         #endregion ActualHeight
     }
 }
+

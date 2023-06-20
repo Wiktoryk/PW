@@ -17,7 +17,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ViewModel", "ViewModel\View
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "View", "View\View.csproj", "{5CBE3D14-89F0-45A9-8E0A-C0E82DD17E18}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogikaTests", "LogikaTests\LogikaTests.csproj", "{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LogikaTests", "LogikaTests\LogikaTests.csproj", "{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrezentacjaTests", "PrezentacjaTests\PrezentacjaTests.csproj", "{F89C7896-6CFC-4E5D-98E5-F354A9175C6F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,6 +55,10 @@ Global
 		{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7ABA33A4-F1B5-4DA4-8BA6-1090B25EE359}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F89C7896-6CFC-4E5D-98E5-F354A9175C6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F89C7896-6CFC-4E5D-98E5-F354A9175C6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F89C7896-6CFC-4E5D-98E5-F354A9175C6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F89C7896-6CFC-4E5D-98E5-F354A9175C6F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -61,6 +67,7 @@ Global
 		{8D7FDF80-56C9-40DB-8498-6C5C47A3B54B} = {AAB5BD74-63AA-4F26-B5A0-7D75CF0CFE88}
 		{6D868F91-0E70-4065-AE4C-32F51F8CEF74} = {AAB5BD74-63AA-4F26-B5A0-7D75CF0CFE88}
 		{5CBE3D14-89F0-45A9-8E0A-C0E82DD17E18} = {AAB5BD74-63AA-4F26-B5A0-7D75CF0CFE88}
+		{F89C7896-6CFC-4E5D-98E5-F354A9175C6F} = {AAB5BD74-63AA-4F26-B5A0-7D75CF0CFE88}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B2395FED-0901-4330-88EB-D8CB2EE54037}

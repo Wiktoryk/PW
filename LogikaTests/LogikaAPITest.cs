@@ -6,41 +6,39 @@ namespace LogikaTests
 {
     internal class DaneApi2 : DaneApiBase
     {
-        public override Kula StworzKule(Pozycja minPoz, Pozycja maxPoz, double minSzybkosc, double maxSzybkosc)
+        public override Kula StworzKule(double minMass, double maxMass, double minRadius, double maxRadius, Pozycja minPos, Pozycja maxPos, double minVel, double maxVel)
         {
             Random rnd = new();
-            double radius = 20;
+            double randVal = rnd.NextDouble();
+            double radius = randVal * (maxRadius - minRadius) + minRadius;
 
-            double minX = minPoz.X + radius;
-            double maxX = maxPoz.X - radius;
+            double mass = randVal * (maxMass - minMass) + minMass;
 
-            double minY = minPoz.Y + radius;
-            double maxY = maxPoz.Y - radius;
+            double minX = minPos.X + radius;
+            double maxX = maxPos.X - radius;
 
-            double temp;
+            double minY = minPos.Y + radius;
+            double maxY = maxPos.Y - radius;
+
             if (minX > maxX)
             {
-                temp = minX;
-                minX = maxX;
-                maxX = temp;
+                (minX, maxX) = (maxX, minX);
             }
 
             if (minY > maxY)
             {
-                temp = minY;
-                minY = maxY;
-                maxY = temp;
+                (minY, maxY) = (maxY, minY);
             }
 
-            Pozycja poz = new(rnd.NextDouble() * (maxX - minX) + minX, rnd.NextDouble() * (maxY - minY) + minY);
-            Pozycja szybkosc = new(rnd.NextDouble() * (maxSzybkosc - minSzybkosc) + minSzybkosc, rnd.NextDouble() * (maxSzybkosc - minSzybkosc) + minSzybkosc);
+            Pozycja pos = new(rnd.NextDouble() * (maxX - minX) + minX, rnd.NextDouble() * (maxY - minY) + minY);
+            Pozycja vel = new(rnd.NextDouble() * (maxVel - minVel) + minVel, rnd.NextDouble() * (maxVel - minVel) + minVel);
 
-            return new Kula(rnd.NextInt64(), radius, poz, szybkosc);
+            return new Kula(rnd.NextInt64(), mass, radius, pos, vel);
         }
 
-        public override Scena StworzScene(double szerokosc, double wysokosc)
+        public override Scena StworzScene(double width, double height)
         {
-            return new Scena(szerokosc, wysokosc);
+            return new Scena(width, height);
         }
     }
     public class LogikaApiTest
@@ -56,7 +54,7 @@ namespace LogikaTests
         [Test]
         public void ConstructorAndGettersTest()
         {
-            LogikaApiBase testApi = new LogikaApi(null);
+            LogikaApiBase testApi = new LogikaApi(new DaneApi2());
             Assert.IsNotNull(testApi);
             Assert.IsNotNull(testApi.Balls);
             Assert.AreEqual(0, testApi.Balls.Count());
@@ -93,7 +91,7 @@ namespace LogikaTests
 
             uint count = 10;
 
-            api.StworzKule(count, 1d, 6d);
+            api.StworzKule(count, 0.1d, 10d, 0.1d, 10d, 1d, 6d);
 
             Assert.AreEqual(count, api.Balls.Count());
 
@@ -101,14 +99,21 @@ namespace LogikaTests
 
             for (uint i = 0; i < count; ++i)
             {
-                Assert.LessOrEqual(((IKula)balls.GetValue((int)i)).GetPromien(), 20d);
+                // Mass
+                Assert.LessOrEqual(((IKula)balls.GetValue((int)i)).GetMasa(), 10d);
+                Assert.GreaterOrEqual(((IKula)balls.GetValue((int)i)).GetMasa(), 0.1d);
+
+                // Radius
+                Assert.LessOrEqual(((IKula)balls.GetValue((int)i)).GetPromien(), 10d);
                 Assert.GreaterOrEqual(((IKula)balls.GetValue((int)i)).GetPromien(), 0.1d);
 
+                // Pos
                 Assert.LessOrEqual(((IKula)balls.GetValue((int)i)).GetPoz().X, 100d);
                 Assert.GreaterOrEqual(((IKula)balls.GetValue((int)i)).GetPoz().X, 0d);
                 Assert.LessOrEqual(((IKula)balls.GetValue((int)i)).GetPoz().Y, 90d);
                 Assert.GreaterOrEqual(((IKula)balls.GetValue((int)i)).GetPoz().Y, 0d);
 
+                // Vel
                 Assert.LessOrEqual(((IKula)balls.GetValue((int)i)).GetSzybkosc().X, 6d);
                 Assert.GreaterOrEqual(((IKula)balls.GetValue((int)i)).GetSzybkosc().X, 1d);
                 Assert.LessOrEqual(((IKula)balls.GetValue((int)i)).GetSzybkosc().Y, 6d);
@@ -128,7 +133,7 @@ namespace LogikaTests
             Assert.IsNotNull(api.Balls);
             Assert.AreEqual(0, api.Balls.Count());
 
-            api.StworzKule(1, 1d, 6d);
+            api.StworzKule(1, 0.1d, 10d, 0.1d, 10d, 1d, 6d);
 
             Assert.IsNotNull(api.Balls);
             Assert.AreEqual(1, api.Balls.Count());

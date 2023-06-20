@@ -1,8 +1,7 @@
-﻿using Dane;
-using Logika;
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Windows.Media;
+using Dane;
 
 namespace Model
 {
@@ -14,11 +13,11 @@ namespace Model
         {
             get
             {
-                return ball.GetPromien() * 2;
+                return ball.GetSrednica();
             }
         }
 
-        public Pozycja CanvasPos
+        public Pozycja ScenaPoz
         {
             get
             {
@@ -35,8 +34,7 @@ namespace Model
             }
         }
 
-
-        public KulaModel(IKula ball)
+        public KulaModel(IKula ball)//, Brush? color)
         {
             this.ball = ball;
             this.ball.OnPositionChanged += BallPositionUpdate;
@@ -44,7 +42,7 @@ namespace Model
 
         private void BallPositionUpdate(object sender, PositionChangedEventArgs e)
         {
-            OnPropertyChanged(nameof(CanvasPos));
+            OnPropertyChanged(nameof(ScenaPoz));
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

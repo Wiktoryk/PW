@@ -1,8 +1,8 @@
 ﻿using System;
+using Logika;
+using Dane;
 using System.Collections.ObjectModel;
 using System.Windows.Media;
-using Dane;
-using Logika;
 
 namespace Model
 {
@@ -12,7 +12,7 @@ namespace Model
         public abstract double ScenaWidth { get; set; }
         public abstract double ScenaHeight { get; set; }
 
-        public abstract void GenerateBalls(uint ballsNum, double minVel, double maxVel);
+        public abstract void StworzKule(uint ballsNum, double minMass, double maxMass, double minRadius, double maxRadius, double minVel, double maxVel);
 
         public abstract void Start();
         public abstract void Stop();
@@ -39,13 +39,13 @@ namespace Model
             this._balls = new ObservableCollection<IKulaModel>();
         }
 
-        public override void GenerateBalls(uint ballsNum, double minVel, double maxVel)
+        public override void StworzKule(uint ballsNum, double minMass, double maxMass, double minRadius, double maxRadius, double minVel, double maxVel)
         {
-            this.logika.StworzKule(ballsNum, minVel, maxVel);
+            this.logika.StworzKule(ballsNum, minMass, maxMass, minRadius, maxRadius, minVel, maxVel);
             this._balls = new ObservableCollection<IKulaModel>();
             foreach (IKula ball in this.logika.Balls)
             {
-                this._balls.Add(new KulaModel(ball));
+                this._balls.Add(new KulaModel(ball));//, color));
             }
         }
 

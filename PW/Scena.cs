@@ -2,30 +2,31 @@
 {
     public class Scena
     {
-        private double m_szerokosc;
-        private double m_wysokosc;
+        private double m_width;
+        private double m_height;
+
         private object width_lock = new();
         private object height_lock = new();
 
-        public Scena(double szerokosc, double wysokosc)
+        public Scena(double width, double height)
         {
-            this.m_szerokosc = szerokosc;
-            this.m_wysokosc = wysokosc;
+            this.m_width = width;
+            this.m_height = height;
         }
 
-        public void SetWidth(double szerokosc)
+        public void SetWidth(double width)
         {
             lock (width_lock)
             {
-                this.m_szerokosc = szerokosc;
+                this.m_width = width;
             }
         }
 
-        public void SetHeight(double wysokosc)
+        public void SetHeight(double height)
         {
             lock (height_lock)
             {
-                this.m_wysokosc = wysokosc;
+                this.m_height = height;
             }
         }
 
@@ -33,7 +34,7 @@
         {
             lock (width_lock)
             {
-                return m_szerokosc;
+                return m_width;
             }
         }
 
@@ -41,7 +42,7 @@
         {
             lock (height_lock)
             {
-                return m_wysokosc;
+                return m_height;
             }
         }
     }

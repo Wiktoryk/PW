@@ -6,14 +6,14 @@ namespace Dane
 
     public class PositionChangedEventArgs : EventArgs
     {
-        public Pozycja LastPoz { get; private set; }
-        public Pozycja Szybkosc { get; private set; }
+        public Pozycja LastPos { get; private set; }
+        public Pozycja Vel { get; private set; }
         public double ElapsedSeconds { get; private set; }
 
-        public PositionChangedEventArgs(Pozycja lastPoz, Pozycja szybkosc, double seconds)
+        public PositionChangedEventArgs(Pozycja lastPos, Pozycja vel, double seconds)
         {
-            LastPoz = lastPoz;
-            Szybkosc = szybkosc;
+            LastPos = lastPos;
+            Vel = vel;
             ElapsedSeconds = seconds;
         }
     }

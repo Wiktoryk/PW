@@ -1,5 +1,4 @@
 using Dane;
-using NUnit.Framework;
 using System.Numerics;
 
 namespace DaneTests
@@ -15,28 +14,31 @@ namespace DaneTests
         }
 
         [Test]
-        public void StworzKuleTest()
+        public void CreateBallTest()
         {
             Assert.NotNull(api);
 
-            IKula ball = api.StworzKule(new Pozycja { X = 0d, Y = 0d }, new Pozycja { X = 10d, Y = 20d }, 0d, 100d);
+            IKula kula = api.StworzKule(0.01d, 100d, 0.01d, 100d, new Pozycja { X = 0d, Y = 0d }, new Pozycja { X = 10d, Y = 20d }, 0d, 100d);
 
-            Assert.NotNull(ball);
+            Assert.NotNull(kula);
 
             Assert.Multiple(() =>
             {
-                Assert.LessOrEqual(ball.GetPromien(), 100d);
-                Assert.GreaterOrEqual(ball.GetPromien(), 0.01d);
+                Assert.LessOrEqual(kula.GetMasa(), 100d);
+                Assert.GreaterOrEqual(kula.GetMasa(), 0.01d);
 
-                Assert.LessOrEqual(ball.GetSzybkosc().X, 100d);
-                Assert.GreaterOrEqual(ball.GetSzybkosc().X, 0d);
-                Assert.LessOrEqual(ball.GetSzybkosc().Y, 100d);
-                Assert.GreaterOrEqual(ball.GetSzybkosc().Y, 0d);
+                Assert.LessOrEqual(kula.GetPromien(), 100d);
+                Assert.GreaterOrEqual(kula.GetPromien(), 0.01d);
 
-                Assert.LessOrEqual(ball.GetPoz().X, 100d);
-                Assert.GreaterOrEqual(ball.GetPoz().X, -90d);
-                Assert.LessOrEqual(ball.GetPoz().Y, 100d);
-                Assert.GreaterOrEqual(ball.GetPoz().Y, -80d);
+                Assert.LessOrEqual(kula.GetSzybkosc().X, 100d);
+                Assert.GreaterOrEqual(kula.GetSzybkosc().X, 0d);
+                Assert.LessOrEqual(kula.GetSzybkosc().Y, 100d);
+                Assert.GreaterOrEqual(kula.GetSzybkosc().Y, 0d);
+
+                Assert.LessOrEqual(kula.GetPoz().X, 100d);
+                Assert.GreaterOrEqual(kula.GetPoz().X, -90d);
+                Assert.LessOrEqual(kula.GetPoz().Y, 100d);
+                Assert.GreaterOrEqual(kula.GetPoz().Y, -80d);
             });
         }
 
@@ -45,7 +47,7 @@ namespace DaneTests
         {
             Assert.NotNull(api);
 
-            Scena scena = api.StworzScene(100d, 0.01d);
+            Scena scena= api.StworzScene(100d, 0.01d);
 
             Assert.NotNull(scena);
 

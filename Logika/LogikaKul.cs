@@ -1,11 +1,8 @@
-﻿using Dane;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Threading.Tasks;
+using Dane;
 
 namespace Logika
 {
@@ -14,7 +11,7 @@ namespace Logika
         private readonly Scena m_scena;
         private readonly DaneApiBase dane;
 
-        public List<IKula> Kule { get; private set; }
+        public List<IKula> Balls { get; private set; }
         public double ScenaWidth
         {
             get
@@ -50,72 +47,78 @@ namespace Logika
         {
             this.m_scena = scena;
             this.dane = dane ?? DaneApiBase.GetApi();
-            this.Kule = new List<IKula>();
+            this.Balls = new List<IKula>();
+
+            BallLogger.Log("Created Simulation Manager", LogType.DEBUG);
         }
 
-        public void StworzKule(uint ballsNum, double minSzybkosc, double maxSzybkosc)
+        public void StworzKule(uint ballsNum, double minMass, double maxMass, double minRadius, double maxRadius, double minVel, double maxVel)
         {
-            Pozycja scenaPoz = new(ScenaWidth, ScenaHeight);
+            Pozycja planePos = new(ScenaWidth, ScenaHeight);
             for (int i = 0; i < ballsNum; i++)
             {
-                Kula newKula = this.dane.StworzKule(Pozycja.Zero, new Pozycja(ScenaWidth, ScenaHeight), minSzybkosc, maxSzybkosc);
-                while (IsInBall(newKula))
-                {
-                    double minX = Pozycja.Zero.X + newKula.GetPromien();
-                    double maxX = scenaPoz.X - newKula.GetPromien();
+                Kula newBall = this.dane.StworzKule(minMass, maxMass, minRadius, maxRadius, Pozycja.Zero, new Pozycja(ScenaWidth, ScenaHeight), minVel, maxVel);
 
-                    double minY = Pozycja.Zero.Y + newKula.GetPromien();
-                    double maxY = scenaPoz.Y - newKula.GetPromien();
+                while (IsInBall(newBall))
+                {
+                    double minX = Pozycja.Zero.X + newBall.GetPromien();
+                    double maxX = planePos.X - newBall.GetPromien();
+
+                    double minY = Pozycja.Zero.Y + newBall.GetPromien();
+                    double maxY = planePos.Y - newBall.GetPromien();
 
                     Random rnd = new();
-                    newKula.SetPoz(new(rnd.NextDouble() * (maxX - minX) + minX, rnd.NextDouble() * (maxY - minY) + minY));
+                    newBall.SetPoz(new(rnd.NextDouble() * (maxX - minX) + minX, rnd.NextDouble() * (maxY - minY) + minY));
                 }
 
-                newKula.OnPositionChanged += CheckCollisions;
-                //newKula.OnPositionChanged += LogPoz;
-                Kule.Add(newKula);
+                newBall.OnPositionChanged += CheckCollisions;
+
+                Balls.Add(newBall);
             }
         }
 
         public void StartSimulation()
         {
-            foreach (IKula ball in Kule)
+            foreach (IKula ball in Balls)
             {
                 ball.StartThread();
             }
+            BallLogger.Log("Started Simulation", LogType.INFO);
         }
 
         public void StopSimulation()
         {
-            foreach (IKula ball in Kule)
+            foreach (IKula ball in Balls)
             {
                 ball.EndThread();
             }
+            BallLogger.Log("Simulation Stopped", LogType.INFO);
         }
 
         public void ClearBalls()
         {
-            StopSimulation();
-            foreach (IKula ball in Kule)
+            int counter = 0;
+            BallLogger.Log(new StringBuilder("Balls Num: ").Append(Balls.Count).ToString(), LogType.DEBUG);
+            foreach (IKula ball in Balls)
             {
                 ball?.Dispose();
+                counter++;
             }
-            Kule.Clear();
+            BallLogger.Log(new StringBuilder("Disposed: ").Append(counter).ToString(), LogType.DEBUG);
+            Balls.Clear();
+            BallLogger.Log(new StringBuilder("Cleared Balls: ").Append(Balls.Count).ToString(), LogType.DEBUG);
+            BallLogger.Log("Balls Cleared", LogType.DEBUG);
         }
-        //void LogPoz(object source, PositionChangedEventArgs e)
-        //{
-        //IKula kula = (IKula)source;
-        //_logger.LogInfo($"{kula.ToString}");
-        //}
-        private bool IsInBall(IKula kula)
+
+        private bool IsInBall(IKula ball)
         {
-            lock (Kule)
+            lock (Balls)
             {
-                foreach (IKula k in Kule)
+                foreach (IKula b in Balls)
                 {
-                    double x = k.GetPoz().X - kula.GetPoz().X;
-                    double y = k.GetPoz().Y - kula.GetPoz().Y;
-                    double r = k.GetPromien() + kula.GetPromien();
+                    double x = b.GetPoz().X - ball.GetPoz().X;
+                    double y = b.GetPoz().Y - ball.GetPoz().Y;
+                    double r = b.GetPromien() + ball.GetPromien();
 
                     if (x * x + y * y < r * r)
                     {
@@ -129,26 +132,26 @@ namespace Logika
 
         private void CheckCollisions(object source, PositionChangedEventArgs e)
         {
-            IKula kula = (IKula)source;
-            Pozycja lastPos = e.LastPoz;
-            Pozycja currVel = e.Szybkosc;
+            IKula ball = (IKula)source;
+            Pozycja lastPos = e.LastPos;
+            Pozycja currVel = e.Vel;
             double totalTime = e.ElapsedSeconds;
             double currentTime = totalTime;
-            (lastPos, currVel, currentTime) = CheckBallsCollisions(kula, lastPos, currVel, currentTime, totalTime);
-            (lastPos, currVel, currentTime) = CheckSceneBordersCollisions(kula, lastPos, currVel, currentTime, totalTime);
+            (lastPos, currVel, currentTime) = CheckBallsCollisions(ball, lastPos, currVel, currentTime, totalTime);
+            (lastPos, currVel, currentTime) = CheckPlaneBordersCollisions(ball, lastPos, currVel, currentTime, totalTime);
         }
 
-        private (Pozycja, Pozycja, double) CheckBallsCollisions(IKula kula, Pozycja lastPos, Pozycja lastVel, double currentTime, double totalTime)
+        private (Pozycja, Pozycja, double) CheckBallsCollisions(IKula ball, Pozycja lastPos, Pozycja lastVel, double currentTime, double totalTime)
         {
             // Other Balls List (In Move Dist to current Ball)
-            double moveDist = lastVel.Length + kula.GetPromien();
+            double moveDist = lastVel.Length + ball.GetPromien();
             List<(double, IKula)> nearBalls = new();
-            for (int j = 0; j < Kule.Count; j++)
+            for (int j = 0; j < Balls.Count; j++)
             {
-                if (Kule[j] != kula)
+                if (Balls[j] != ball)
                 {
-                    double dist = Math.Clamp((Kule[j].GetPoz() - lastPos).Length - Kule[j].GetPromien(), 0, double.MaxValue);
-                    nearBalls.Add((dist, Kule[j]));
+                    double dist = Math.Clamp((Balls[j].GetPoz() - lastPos).Length - Balls[j].GetPromien(), 0, double.MaxValue);
+                    nearBalls.Add((dist, Balls[j]));
                 }
             }
             // Sort By Dist
@@ -156,10 +159,10 @@ namespace Logika
             double tcmin, tcmax;
             for (int j = 0; j < nearBalls.Count; j++)
             {
-                (double dist, IKula k) = nearBalls[j];
-                Pozycja lastPos2 = k.GetPoz();
-                Pozycja vel2 = k.GetPoz();
-                (tcmin, tcmax) = CollisionManager.TimesOfCollisionWithBall(lastPos, lastVel, lastPos2, vel2, kula.GetPromien() + k.GetPromien());
+                (double dist, IKula b) = nearBalls[j];
+                Pozycja lastPos2 = b.GetPoz();
+                Pozycja vel2 = b.GetSzybkosc();
+                (tcmin, tcmax) = CollisionManager.TimesOfCollisionWithMovingCircle(lastPos, lastVel, lastPos2, vel2, ball.GetPromien() + b.GetPromien());
                 if (tcmin != double.NegativeInfinity && tcmax != double.PositiveInfinity)
                 {
                     if (tcmin >= 0 && tcmax >= 0)
@@ -167,13 +170,13 @@ namespace Logika
                         if (tcmin <= currentTime)
                         {
                             lastPos += lastVel * tcmin;
-                            kula.SetPoz(lastPos);
-                            Pozycja newPozycja = lastPos2 + vel2 * tcmin;
-                            k.SetPoz(newPozycja);
+                            ball.SetPoz(lastPos);
+                            Pozycja newPos2 = lastPos2 + vel2 * tcmin;
+                            b.SetPoz(newPos2);
                             //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
-                            (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, kula.GetMasa(), vel2, k.GetMasa());
-                            kula.SetSzybkosc(lastVel);
-                            k.SetSzybkosc(vel2);
+                            (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, ball.GetMasa(), vel2, b.GetMasa());
+                            ball.SetSzybkosc(lastVel);
+                            b.SetSzybkosc(vel2);
                             currentTime -= tcmin;
                         }
                     }
@@ -182,13 +185,13 @@ namespace Logika
                         if (tcmin >= currentTime - totalTime)
                         {
                             lastPos += lastVel * tcmin;
-                            kula.SetPoz(lastPos);
-                            Pozycja newPozycja = lastPos2 + vel2 * tcmin;
-                            k.SetPoz(newPozycja);
+                            ball.SetPoz(lastPos);
+                            Pozycja newPos2 = lastPos2 + vel2 * tcmin;
+                            b.SetPoz(newPos2);
                             //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
-                            (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, kula.GetMasa(), vel2, k.GetMasa());
-                            kula.SetSzybkosc(lastVel);
-                            k.SetSzybkosc(vel2);
+                            (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, ball.GetMasa(), vel2, b.GetMasa());
+                            ball.SetSzybkosc(lastVel);
+                            b.SetSzybkosc(vel2);
                             currentTime -= tcmin;
                         }
                     }
@@ -198,13 +201,13 @@ namespace Logika
                     if (tcmin >= 0 && tcmin <= currentTime)
                     {
                         lastPos += lastVel * tcmin;
-                        kula.SetPoz(lastPos);
-                        Pozycja newPozycja = lastPos2 + vel2 * tcmin;
-                        k.SetPoz(newPozycja);
+                        ball.SetPoz(lastPos);
+                        Pozycja newPos2 = lastPos2 + vel2 * tcmin;
+                        b.SetPoz(newPos2);
                         //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
-                        (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, kula.GetMasa(), vel2, k.GetMasa());
-                        kula.SetSzybkosc(lastVel);
-                        k.SetSzybkosc(vel2);
+                        (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, ball.GetMasa(), vel2, b.GetMasa());
+                        ball.SetSzybkosc(lastVel);
+                        b.SetSzybkosc(vel2);
                         currentTime -= tcmin;
                     }
                 }
@@ -213,13 +216,13 @@ namespace Logika
                     if (tcmax >= 0 && tcmax <= currentTime)
                     {
                         lastPos += lastVel * tcmax;
-                        kula.SetPoz(lastPos);
-                        Pozycja newPozycja = lastPos2 + vel2 * tcmax;
-                        k.SetPoz(newPozycja);
+                        ball.SetPoz(lastPos);
+                        Pozycja newPos2 = lastPos2 + vel2 * tcmax;
+                        b.SetPoz(newPos2);
                         //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
-                        (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, kula.GetMasa(), vel2, k.GetMasa());
-                        kula.SetSzybkosc(lastVel);
-                        k.SetSzybkosc(vel2);
+                        (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, ball.GetMasa(), vel2, b.GetMasa());
+                        ball.SetSzybkosc(lastVel);
+                        b.SetSzybkosc(vel2);
                         currentTime -= tcmax;
                     }
                 }
@@ -227,73 +230,75 @@ namespace Logika
 
             return (lastPos, lastVel, currentTime);
         }
-        private (Pozycja, Pozycja, double) CheckSceneBordersCollisions(IKula kula, Pozycja lastPos, Pozycja lastVel, double currentTime, double totalTime)
+
+        private (Pozycja, Pozycja, double) CheckPlaneBordersCollisions(IKula ball, Pozycja lastPos, Pozycja lastVel, double currentTime, double totalTime)
         {
-            Pozycja górnyLewyPunktSceny = new() { X = 0 + kula.GetPromien(), Y = 0 + kula.GetPromien() };
-            Pozycja górnyPrawyPunktSceny = new() { X = ScenaWidth - kula.GetPromien(), Y = 0 + kula.GetPromien() };
-            Pozycja dolnyPrawyPunktSceny = new() { X = ScenaWidth - kula.GetPromien(), Y = ScenaHeight - kula.GetPromien() };
-            Pozycja dolnyLewyPunktSceny = new() { X = 0 + kula.GetPromien(), Y = ScenaHeight - kula.GetPromien() };
+            // Plane Points:
+            Pozycja topLeftPlanePoint = new() { X = 0 + ball.GetPromien(), Y = 0 + ball.GetPromien() };
+            Pozycja topRightPlanePoint = new() { X = ScenaWidth - ball.GetPromien(), Y = 0 + ball.GetPromien() };
+            Pozycja bottomRightPlanePoint = new() { X = ScenaWidth - ball.GetPromien(), Y = ScenaHeight - ball.GetPromien() };
+            Pozycja bottomLeftPlanePoint = new() { X = 0 + ball.GetPromien(), Y = ScenaHeight - ball.GetPromien() };
 
             if (currentTime >= 0)
             {
                 double tc;
                 // Plane Top Line:
-                if (lastVel.Y < 0 && lastPos.Y > górnyLewyPunktSceny.Y)
+                if (lastVel.Y < 0 && lastPos.Y > topLeftPlanePoint.Y)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPos, lastVel, górnyLewyPunktSceny, górnyPrawyPunktSceny,Pozycja.Zero);
+                    tc = CollisionManager.TimeOfCollisionWithStaticLine(lastPos, lastVel, topLeftPlanePoint, topRightPlanePoint);
                     if (tc != double.PositiveInfinity && tc >= 0 && tc <= currentTime)
                     {
                         lastPos += lastVel * tc;
-                        kula.SetPoz(lastPos);
+                        ball.SetPoz(lastPos);
                         lastVel.Y *= -1;
-                        kula.SetSzybkosc(lastVel);
+                        ball.SetSzybkosc(lastVel);
                         currentTime -= tc;
                     }
                 }
 
                 // Plane Right Line
-                if (lastVel.X > 0 && lastPos.X < górnyPrawyPunktSceny.X)
+                if (lastVel.X > 0 && lastPos.X < topRightPlanePoint.X)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPos, lastVel, górnyPrawyPunktSceny, dolnyPrawyPunktSceny, Pozycja.Zero);
+                    tc = CollisionManager.TimeOfCollisionWithStaticLine(lastPos, lastVel, topRightPlanePoint, bottomRightPlanePoint);
                     if (tc != double.PositiveInfinity && tc >= 0 && tc <= currentTime)
                     {
                         lastPos += lastVel * tc;
-                        kula.SetPoz(lastPos);
+                        ball.SetPoz(lastPos);
                         lastVel.X *= -1;
-                        kula.SetSzybkosc(lastVel);
+                        ball.SetSzybkosc(lastVel);
                         currentTime -= tc;
                     }
                 }
 
                 // Plane Bottom Line:
-                if (lastVel.Y > 0 && lastPos.Y < dolnyPrawyPunktSceny.Y)
+                if (lastVel.Y > 0 && lastPos.Y < bottomRightPlanePoint.Y)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPos, lastVel, dolnyLewyPunktSceny, dolnyPrawyPunktSceny, Pozycja.Zero);
+                    tc = CollisionManager.TimeOfCollisionWithStaticLine(lastPos, lastVel, bottomLeftPlanePoint, bottomRightPlanePoint);
                     if (tc != double.PositiveInfinity && tc >= 0 && tc <= currentTime)
                     {
                         lastPos += lastVel * tc;
-                        kula.SetPoz(lastPos);
+                        ball.SetPoz(lastPos);
                         lastVel.Y *= -1;
-                        kula.SetSzybkosc(lastVel);
+                        ball.SetSzybkosc(lastVel);
                         currentTime -= tc;
                     }
                 }
 
                 // Plane Left Line
-                if (lastVel.X < 0 && lastPos.X < dolnyLewyPunktSceny.X)
+                if (lastVel.X < 0 && lastPos.X > bottomLeftPlanePoint.X)
                 {
-                    tc = CollisionManager.TimeOfCollisionWithLine(lastPos, lastVel, dolnyLewyPunktSceny, górnyLewyPunktSceny, Pozycja.Zero);
+                    tc = CollisionManager.TimeOfCollisionWithStaticLine(lastPos, lastVel, bottomLeftPlanePoint, topLeftPlanePoint);
                     if (tc != double.PositiveInfinity && tc >= 0 && tc <= currentTime)
                     {
                         lastPos += lastVel * tc;
-                        kula.SetPoz(lastPos);
+                        ball.SetPoz(lastPos);
                         lastVel.X *= -1;
-                        kula.SetSzybkosc(lastVel);
+                        ball.SetSzybkosc(lastVel);
                         currentTime -= tc;
                     }
                 }
 
-                kula.SetPoz(lastPos + lastVel * currentTime);
+                ball.SetPoz(lastPos + lastVel * currentTime);
             }
             return (lastPos, lastVel, currentTime);
         }
@@ -306,7 +311,14 @@ namespace Logika
     }
     internal class CollisionManager
     {
-        public static double TimeOfCollisionWithLine(Pozycja startObjPos, Pozycja objVel, Pozycja linePoint1, Pozycja linePoint2, Pozycja lineVel)
+        // Calculating Times:
+
+        public static double TimeOfCollisionWithStaticLine(Pozycja objPos, Pozycja objVel, Pozycja linePoint1, Pozycja linePoint2)
+        {
+            return TimeOfCollisionWithMovingLine(objPos, objVel, linePoint1, linePoint2, Pozycja.Zero);
+        }
+
+        public static double TimeOfCollisionWithMovingLine(Pozycja objPos, Pozycja objVel, Pozycja linePoint1, Pozycja linePoint2, Pozycja lineVel)
         {
             if (objVel == Pozycja.Zero && lineVel == Pozycja.Zero) return double.PositiveInfinity;
             if (objVel - lineVel == Pozycja.Zero) return double.PositiveInfinity;
@@ -316,12 +328,13 @@ namespace Logika
             double B = linePoint2.X - linePoint1.X;
             double C = (linePoint1.X * linePoint2.Y) - (linePoint2.X * linePoint1.Y);
 
-            double tc = (-A * startObjPos.X - B * startObjPos.Y - C) / (A * objVel.X + B * objVel.Y);
+            double tc = (-A * objPos.X - B * objPos.Y - C) / (A * (objVel.X - lineVel.X) + B * (objVel.Y - lineVel.Y));
             if (tc < 0) return double.PositiveInfinity;
 
             // Sprawdzanie czy punkt leży na lini ograniczonej punktami
-            Pozycja cPos = startObjPos + objVel * tc;
-            Pozycja lPos1 = linePoint1 * tc;
+            Pozycja cPos = objPos + objVel * tc;
+            Pozycja lPos1 = linePoint1 + lineVel * tc;
+            //Pos2D lPos2 = linePoint2 + lineVel * tc;
 
             // dx = B
             // dy = -A
@@ -339,11 +352,13 @@ namespace Logika
 
             return tc;
         }
-        public static (double, double) TimesOfCollisionWithStaticBall(Pozycja objPos, Pozycja objVel, Pozycja ballPos, double radius, double startAngle = 0, double endAngle = 0)
+
+        public static (double, double) TimesOfCollisionWithStaticCircle(Pozycja objPos, Pozycja objVel, Pozycja ballPos, double radius, double startAngle = 0, double endAngle = 0)
         {
-            return TimesOfCollisionWithBall(objPos, objVel, ballPos, Pozycja.Zero, radius, startAngle, endAngle);
+            return TimesOfCollisionWithMovingCircle(objPos, objVel, ballPos, Pozycja.Zero, radius, startAngle, endAngle);
         }
-        public static (double,double) TimesOfCollisionWithBall(Pozycja objPos, Pozycja objVel, Pozycja ballPos, Pozycja ballVel, double radius, double startAngle = 0, double endAngle = 0)
+
+        public static (double, double) TimesOfCollisionWithMovingCircle(Pozycja objPos, Pozycja objVel, Pozycja ballPos, Pozycja ballVel, double radius, double startAngle = 0, double endAngle = 0)
         {
             if (radius == 0) return (double.NegativeInfinity, double.PositiveInfinity);
 
@@ -379,7 +394,7 @@ namespace Logika
                 double tmax = Math.Max(t1, t2);
                 if (startAngle == endAngle) return (tmin, tmax);
 
-                // Testowanie czy min(t1, t2) należy do łuku
+                // Tesotowanie czy min(t1, t2) należy do łuku
                 Pozycja cPos = objPos + objVel * tmin;
                 Pozycja bPos = ballPos + ballVel * tmin;
 
@@ -406,6 +421,80 @@ namespace Logika
 
             return (double.NegativeInfinity, double.PositiveInfinity);
         }
+
+        /*public static double TimeOfCollisionWithStaticRect(Pos2D objPos, Pos2D objVel, Pos2D rectPos, double width, double height)
+        {
+            Pos2D topLeft = new(rectPos.X - width / 2, rectPos.Y - height / 2);
+            Pos2D topRight = new(rectPos.X + width / 2, rectPos.Y - height / 2);
+            Pos2D bottomLeft = new(rectPos.X - width / 2, rectPos.Y + height / 2);
+            Pos2D bottomRight = new(rectPos.X + width / 2, rectPos.Y + height / 2);
+
+            // Czas kolizji z lewą scianą boczną
+            double tl = TimeOfCollisionWithStaticLine(objPos, objVel, topLeft, bottomLeft);
+            double t = tl;
+
+            double tt = TimeOfCollisionWithStaticLine(objPos, objVel, topLeft, topRight);
+            if (tt < t) { t = tt; }
+
+            double tr = TimeOfCollisionWithStaticLine(objPos, objVel, topRight, bottomRight);
+            if (tr < t) { t = tr; }
+
+            double tb = TimeOfCollisionWithStaticLine(objPos, objVel, bottomRight, bottomLeft);
+            if (tb < t) { t = tb; }
+
+            return t;
+        }*/
+
+        /*public static double TimeOfCollisionWithStaticRoundedRect(Pos2D objPos, Pos2D objVel, Pos2D rectPos, double width, double height, double radius)
+        {
+            // Lewa ściana boczna:
+            Pos2D leftLine1 = new(rectPos.X - width / 2, rectPos.Y + (height / 2 - radius));
+            Pos2D leftLine2 = new(rectPos.X - width / 2, rectPos.Y - (height / 2 - radius));
+            double tl = TimeOfCollisionWithStaticLine(objPos, objVel, leftLine1, leftLine2);
+            double t = tl;
+
+            // Górna ściana:
+            Pos2D topLine1 = new(rectPos.X - (width / 2 - radius), rectPos.Y - height / 2);
+            Pos2D topLine2 = new(rectPos.X + (width / 2 - radius), rectPos.Y - height / 2);
+            double tt = TimeOfCollisionWithStaticLine(objPos, objVel, topLine1, topLine2);
+            if (tt < t) { t = tt; }
+
+            // Prawa ściana boczna:
+            Pos2D rightLine1 = new(rectPos.X + width / 2, rectPos.Y - (height / 2 - radius));
+            Pos2D rightLine2 = new(rectPos.X + width / 2, rectPos.Y + (height / 2 - radius));
+            double tr = TimeOfCollisionWithStaticLine(objPos, objVel, rightLine1, rightLine2);
+            if (tr < t) { t = tr; }
+
+            // Dolna ściana:
+            Pos2D bottomLine1 = new(rectPos.X + (width / 2 - radius), rectPos.Y + height / 2);
+            Pos2D bottomLine2 = new(rectPos.X - (width / 2 - radius), rectPos.Y + height / 2);
+            double tb = TimeOfCollisionWithStaticLine(objPos, objVel, bottomLine1 , bottomLine2);
+            if (tb < t) { t = tb; }
+
+            // Górny lewy łuk:
+            Pos2D topLeftPos = new(rectPos.X - (width / 2 - radius), rectPos.Y - (height / 2 - radius));
+            double ttl = TimeOfCollisionWithStaticCircle(objPos, objVel, topLeftPos, radius, 90, 180);
+            if (ttl < t) { t = ttl; }
+
+            // Górny prawy łuk:
+            Pos2D topRightPos = new(rectPos.X + (width / 2 - radius), rectPos.Y - (height / 2 - radius));
+            double ttr = TimeOfCollisionWithStaticCircle(objPos, objVel, topRightPos, radius, 0, 90);
+            if (ttr < t) { t = ttr; }
+
+            // Dolny prawy łuk:
+            Pos2D bottomRightPos = new(rectPos.X + (width / 2 - radius), rectPos.Y + (height / 2 - radius));
+            double tbr = TimeOfCollisionWithStaticCircle(objPos, objVel, bottomRightPos, radius, 270, 360);
+            if (tbr < t) { t = tbr; }
+
+            // Dolny lewy łuk:
+            Pos2D bottomLeftPos = new(rectPos.X - (width / 2 - radius), rectPos.Y + (height / 2 - radius));
+            double tbl = TimeOfCollisionWithStaticCircle(objPos, objVel, bottomLeftPos, radius, 180, 270);
+            if (tbl < t) { t = tbl; }
+
+            return t;
+        }*/
+
+        // Calculating Bounce
         public static (Pozycja, Pozycja) VelocitiesAfterCollision(Pozycja vel1, double mass1, Pozycja vel2, double mass2)
         {
             if (mass1 == 0 && mass2 == 0) return (Pozycja.Zero, Pozycja.Zero);
@@ -416,6 +505,7 @@ namespace Logika
 
             return (newVel1, newVel2);
         }
+
         public static (Pozycja, Pozycja) VelocitiesAfterBallsCollision(Pozycja vel1, double mass1, Pozycja center1, Pozycja vel2, double mass2, Pozycja center2)
         {
             if (mass1 == 0 && mass2 == 0) return (Pozycja.Zero, Pozycja.Zero);

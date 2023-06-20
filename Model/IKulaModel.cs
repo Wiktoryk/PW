@@ -9,6 +9,6 @@ namespace Model
     {
         double Diameter { get; }
 
-        Pozycja CanvasPos { get; set; }
+        Pozycja ScenaPoz { get; set; }
     }
 }

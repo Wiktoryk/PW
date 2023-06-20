@@ -1,21 +1,27 @@
 ﻿using System;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Text;
 using System.Threading;
+using System.Windows.Threading;
+using System.Collections.ObjectModel;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
-using Model;
 using Dane;
+using Model;
 
 namespace ViewModel
 {
     public class ViewModelBase : INotifyPropertyChanged
     {
         public Thread mainThread;
+
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        public ViewModelBase()
+        {
+            mainThread = Thread.CurrentThread;
+        }
 
         public void OnPropertyChanged(string propertyName)
         {
@@ -28,10 +34,6 @@ namespace ViewModel
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
-        public ViewModelBase()
-        {
-            mainThread = Thread.CurrentThread;
-        }
     }
     public class MainViewModel : ViewModelBase
     {
@@ -40,24 +42,24 @@ namespace ViewModel
         public ObservableCollection<IKulaModel> Balls => model.Balls;
         private object ballsLock = new();
 
-        public double PlaneWidth
+        public double ScenaWidth
         {
             get => model.ScenaWidth;
 
             set
             {
                 model.ScenaWidth = value;
-                OnPropertyChanged(nameof(PlaneWidth));
+                OnPropertyChanged(nameof(ScenaWidth));
             }
         }
-        public double PlaneHeight
+        public double ScenaHeight
         {
             get => model.ScenaHeight;
 
             set
             {
                 model.ScenaHeight = value;
-                OnPropertyChanged(nameof(PlaneHeight));
+                OnPropertyChanged(nameof(ScenaHeight));
             }
         }
 
@@ -75,52 +77,64 @@ namespace ViewModel
             }
         }
 
-        private uint _maxBallsNum;
-        public uint MaxBallsNumber
+        private uint _currentMaxBallsNumber;
+        public uint CurrentMaxBallsNumber
         {
             get
             {
-                return _maxBallsNum;
+                return _currentMaxBallsNumber;
             }
-            private set
+            set
             {
-                if (_maxBallsNum != value)
+                if (value != _currentMaxBallsNumber)
                 {
-                    _maxBallsNum = value;
-                    OnPropertyChanged(nameof(MaxBallsNumber));
+                    _currentMaxBallsNumber = value;
+                    OnPropertyChanged(nameof(CurrentMaxBallsNumber));
                 }
             }
         }
+        public static uint MaxBallsNumber => 20;
 
-        public static uint MaxBallRadius => 50;
-        public static uint MinBallRadius => 5;
+        public static double MinBallMass => 10;
+        public static double MaxBallMass => 10;
+
+        public static double MaxBallRadius => 20;
+        public static double CurrentMaxBallRadius { get; private set; }
+        public static double MinBallRadius => 20;
 
         public static double MinBallVel => 10;
         public static double MaxBallVel => 100;
 
         public ICommand GenerateBallsCommand { get; private set; }
-        public ICommand SimStopCommand { get; private set; }
 
-        public MainViewModel()
+        public MainViewModel() : base()
         {
             BallLogger.SetMaxLogFileSizeKB(1024);
             BallLogger.SetMaxLogFilesNum(25);
             BallLogger.StartLogging();
-            this.BallsNumber = 0;
-            this.MaxBallsNumber = 0;
-            this.GenerateBallsCommand = new GenerateBallsCommand(this);
-            this.SimStopCommand = new SimStopCommand(this);
 
-            this.model = ModelApiBase.GetApi();
-            this.PropertyChanged += RecalculateMaxBallsNumber;
+            BallsNumber = 0;
+            CurrentMaxBallsNumber = 0;
+            GenerateBallsCommand = new SimpleCommand(this, Generate, (param) => { return BallsNumber > 0 && BallsNumber <= MaxBallsNumber; });
+            ((SimpleCommand)GenerateBallsCommand).OnExecuteDone += (object source, CommandEventArgs e) =>
+            {
+                string message = new StringBuilder("Successfully generated ").Append(BallsNumber).Append(" balls").ToString();
+                BallLogger.Log(message, LogType.INFO);
+                MessageBox.Show(message, "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            };
+
+            model = ModelApiBase.GetApi();
+            PropertyChanged += RecalculateMaxBallsNumber;
         }
+
         private async Task<bool> Generate(object? parameter)
         {
+            BallLogger.Log("Invoked Generate", LogType.DEBUG);
             return await Task.Run(() =>
             {
                 lock (ballsLock)
                 {
-                    model.GenerateBalls(BallsNumber, MinBallVel, MaxBallVel);
+                    model.StworzKule(BallsNumber, MinBallMass, MaxBallMass, MinBallRadius, MaxBallRadius, MinBallVel, MaxBallVel);
                     model.Start();
                     OnPropertyChanged(nameof(Balls));
                 }
@@ -130,13 +144,23 @@ namespace ViewModel
 
         void RecalculateMaxBallsNumber(object? source, PropertyChangedEventArgs? e)
         {
-            if (e?.PropertyName == nameof(PlaneWidth) || e?.PropertyName == nameof(PlaneHeight))
+            if (e?.PropertyName == nameof(ScenaWidth) || e?.PropertyName == nameof(ScenaHeight))
             {
-                uint ballsInHeight = (uint)(PlaneHeight / (MaxBallRadius * 2));
-                uint ballsInWidth = (uint)(PlaneWidth / (MaxBallRadius * 2));
+                double height = Math.Max(ScenaHeight - 2 * MinBallRadius, 0);
+                double width = Math.Max(ScenaWidth - 2 * MinBallRadius, 0);
 
-                uint ballsNumber = ballsInHeight * ballsInWidth;
-                MaxBallsNumber = ballsNumber >= 40 ? ballsNumber - 40 : 0;
+                double radius = Math.Sqrt((height * width) / (4 * (MaxBallsNumber + 40)));
+                uint currentMaxNum = MaxBallsNumber;
+                if (radius > MaxBallRadius) radius = MaxBallRadius;
+                if (radius < MinBallRadius)
+                {
+                    if (radius < MinBallRadius) radius = MinBallRadius;
+
+                    currentMaxNum = (uint)((height * width) / (4 * radius * radius));
+                    currentMaxNum = currentMaxNum > 40 ? currentMaxNum - 40 : currentMaxNum;
+                }
+                CurrentMaxBallsNumber = currentMaxNum;
+                CurrentMaxBallRadius = radius;
             }
         }
     }

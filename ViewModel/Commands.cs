@@ -1,83 +1,71 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Reflection.Metadata;
+using System.Threading.Tasks;
 using System.Windows.Input;
-using System.ComponentModel;
-using System.Windows;
 
 namespace ViewModel
 {
-    internal abstract class CommandBase : ICommand
-    {
-        public event EventHandler? CanExecuteChanged;
+    public delegate void CommandEventHandler(object source, CommandEventArgs e);
 
-        public virtual bool CanExecute(object? parameter)
+    public class CommandEventArgs : EventArgs
+    {
+        private readonly string EventInfo;
+
+        public CommandEventArgs(string Text)
         {
-            return true;
+            EventInfo = Text;
         }
 
-        public abstract void Execute(object? parameter);
+        public string GetInfo()
+        {
+            return EventInfo;
+        }
+    }
+
+    internal class CommandBase : ICommand
+    {
+        public event EventHandler? CanExecuteChanged;
+        public event CommandEventHandler? OnExecuteDone;
+
+        private readonly Func<object?, Task<bool>> _execute;
+        private readonly Func<object?, bool>? _canExecute;
+
+        public CommandBase(Func<object?, Task<bool>> execute, Func<object?, bool>? canExecute)
+        {
+            _execute = execute ?? (async (param) => { return await Task.Run(() => { return true; }); });
+            _canExecute = canExecute;
+        }
+
+        private async Task ExecuteAsync(object? parameter)
+        {
+            await _execute(parameter);
+            OnExecuteDone?.Invoke(this, new CommandEventArgs(""));
+        }
+
+        #region ICommand Members
+        [DebuggerStepThrough]
+        public bool CanExecute(object? parameter)
+        {
+            return _canExecute == null ? true : _canExecute(parameter);
+        }
 
         protected void OnCanExecuteChanged()
         {
             CanExecuteChanged?.Invoke(this, new EventArgs());
         }
+
+        public void Execute(object? parameter)
+        {
+            ExecuteAsync(parameter);
+        }
+        #endregion
     }
-    internal class GenerateBallsCommand : CommandBase
+    internal class SimpleCommand : CommandBase
     {
-        private readonly MainViewModel m_mainView;
-
-        public GenerateBallsCommand(MainViewModel mainView)
+        public SimpleCommand(MainViewModel mainView, Func<object?, Task<bool>> execute, Func<object?, bool>? canExecute) : base(execute, canExecute)
         {
-            m_mainView = mainView;
-            m_mainView.PropertyChanged += OnViewModelPropertyChanged;
-        }
-
-        public override bool CanExecute(object? parameter)
-        {
-            return m_mainView.BallsNumber > 0 && base.CanExecute(parameter) && m_mainView.BallsNumber <= m_mainView.MaxBallsNumber;
-        }
-
-        public override void Execute(object? parameter)
-        {
-            this.m_mainView.model.GenerateBalls(this.m_mainView.BallsNumber, MainViewModel.MinBallVel, MainViewModel.MaxBallVel);
-            this.m_mainView.OnPropertyChanged(nameof(this.m_mainView.Balls));
-            MessageBox.Show("Generated " + m_mainView.BallsNumber + " Balls", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            this.m_mainView.model.Start();
-        }
-
-        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(m_mainView.BallsNumber))
-            {
-                OnCanExecuteChanged();
-            }
-        }
-    }
-    internal class SimStopCommand : CommandBase
-    {
-        private readonly MainViewModel m_mainView;
-
-        public SimStopCommand(MainViewModel mainView)
-        {
-            m_mainView = mainView;
-            m_mainView.PropertyChanged += OnViewModelPropertyChanged;
-        }
-
-        public override bool CanExecute(object? parameter)
-        {
-            return m_mainView.BallsNumber > 0 && base.CanExecute(parameter) && m_mainView.BallsNumber <= m_mainView.MaxBallsNumber;
-        }
-
-        public override void Execute(object? parameter)
-        {
-            this.m_mainView.model.Stop();
-        }
-
-        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(m_mainView.BallsNumber))
-            {
-                OnCanExecuteChanged();
-            }
+            mainView.PropertyChanged += (sender, e) => OnCanExecuteChanged();
         }
     }
 }

@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Dane
 {
@@ -68,8 +64,8 @@ namespace Dane
 
         public static Pozycja Zero { get { return new Pozycja { X = 0, Y = 0 }; } }
         public static Pozycja One { get { return new Pozycja { X = 1, Y = 1 }; } }
-        //public static Pos2D Right { get { return new Pos2D { X = 1, Y = 0 }; } }
-        //public static Pos2D Down { get { return new Pos2D { X = 0, Y = 1 }; } }
+        public static Pozycja Right { get { return new Pozycja { X = 1, Y = 0 }; } }
+        public static Pozycja Down { get { return new Pozycja { X = 0, Y = 1 }; } }
 
         public double Length
         {
@@ -89,6 +85,10 @@ namespace Dane
         public double DotProduct(Pozycja other)
         {
             return this.X * other.X + this.Y * other.Y;
+        }
+        public double CalculateAngle(Pozycja other)
+        {
+            return Math.Acos(this.DotProduct(other) / (this.Length * other.Length));
         }
 
         public override bool Equals(object? obj)

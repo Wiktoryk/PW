@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Reflection.Metadata;
-using System.Threading;
 using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Dane
 {
     public enum LogType { INFO, WARNING, ERROR, FATAL, DEBUG }
+
     public static class BallLogger
     {
         private static uint currLogFileNum = 0;

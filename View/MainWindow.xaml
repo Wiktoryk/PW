@@ -15,18 +15,17 @@
         <viewmodel:MainViewModel/>
     </Window.DataContext>
     <Grid Background="White">
-        <Label Content="Liczba kul" HorizontalAlignment="Left" Margin="10,26,0,0" VerticalAlignment="Top"/>
-        <xctk:IntegerUpDown x:Name="myUpDownControl" Height="23" Width="186" Watermark="Type Integer" Minimum="0" Maximum="{Binding MaxBallsNumber, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" ClipValueToMinMax="True" AllowTextInput="True" DisplayDefaultValueOnEmptyText="True" DefaultValue="0" Value="{Binding BallsNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="7,57,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-        <Button Command="{Binding GenerateBallsCommand}" Content="Generate Balls" HorizontalAlignment="Left" Width="124" Height="36" VerticalAlignment="Bottom" Margin="38,0,0,100"/>
-        <Button Content="stop" HorizontalAlignment="Left" Margin="38,0,0,10" VerticalAlignment="Bottom" Height="36" Width="124" Command="{Binding SimStopCommand}"/>
+        <Label Content="Number of Balls" HorizontalAlignment="Left" Margin="10,26,0,0" VerticalAlignment="Top"/>
+        <xctk:IntegerUpDown x:Name="myUpDownControl" Height="23" Width="186" Watermark="Type Integer" Minimum="0" Maximum="{Binding CurrentMaxBallsNumber, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" ClipValueToMinMax="True" AllowTextInput="True" DisplayDefaultValueOnEmptyText="True" DefaultValue="0" Value="{Binding BallsNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="7,57,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        <Button Command="{Binding GenerateBallsCommand}" Content="Generate Balls" HorizontalAlignment="Left" Width="124" Height="36" VerticalAlignment="Bottom" Margin="38,0,0,10"/>
         <GridSplitter x:Name="gridSplitter" HorizontalAlignment="Left" Margin="218,0,0,0" Width="5"/>
-        <ItemsControl ItemsSource="{Binding Balls, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+        <ItemsControl ItemsSource="{Binding Balls, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, IsAsync=True}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <Canvas x:Name="BallCanvas" Margin="228,10,10,10" Background="#FFFF00"
                             ext:ActualSizeGetter.ActualSize="True"
-                            ext:ActualSizeGetter.ActualWidth="{Binding PlaneWidth, Mode=OneWayToSource, UpdateSourceTrigger=PropertyChanged}"
-                            ext:ActualSizeGetter.ActualHeight="{Binding PlaneHeight, Mode=OneWayToSource, UpdateSourceTrigger=PropertyChanged}">
+                            ext:ActualSizeGetter.ActualWidth="{Binding ScenaWidth, Mode=OneWayToSource, UpdateSourceTrigger=PropertyChanged}"
+                            ext:ActualSizeGetter.ActualHeight="{Binding ScenaHeight, Mode=OneWayToSource, UpdateSourceTrigger=PropertyChanged}">
                         <Canvas.Effect>
                             <DropShadowEffect/>
                         </Canvas.Effect>
@@ -35,13 +34,13 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemContainerStyle>
                 <Style TargetType="{x:Type ContentPresenter}">
-                    <Setter Property="Canvas.Left" Value="{Binding CanvasPos.X, UpdateSourceTrigger=PropertyChanged}" />
-                    <Setter Property="Canvas.Top" Value="{Binding CanvasPos.Y, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Setter Property="Canvas.Left" Value="{Binding ScenaPoz.X, UpdateSourceTrigger=PropertyChanged}" />
+                    <Setter Property="Canvas.Top" Value="{Binding ScenaPoz.Y, UpdateSourceTrigger=PropertyChanged}"/>
                 </Style>
             </ItemsControl.ItemContainerStyle>
             <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type model:KulaModel}">
-                    <Ellipse Fill="#FF0000" 
+                    <Ellipse Fill="#FF0000"  
                              Width="{Binding Diameter, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="{Binding Diameter, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"/>
                 </DataTemplate>
