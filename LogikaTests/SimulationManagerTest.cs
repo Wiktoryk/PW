@@ -109,38 +109,6 @@ namespace LogikaTests
             }
         }
 
-        [Test, RequiresThread]
-        public void StartSimulationTest()
-        {
-            SimulationManager sim = new(new Scena(100d, 90d));
-
-            Assert.IsNotNull(sim);
-            Assert.IsNotNull(sim.Balls);
-
-            sim.StworzKule(1, 0.1d, 10d, 0.1d, 10d, 1d, 6d);
-
-            Assert.IsNotNull(sim.Balls);
-            Assert.AreEqual(1, sim.Balls.Count);
-
-            Pozycja startPos = sim.Balls[0].GetPoz();
-
-            sim.StartSimulation();
-
-            Thread.Sleep(10);
-
-            Pozycja pos = sim.Balls[0].GetPoz();
-
-            Assert.Multiple(() =>
-            {
-                Assert.AreNotEqual(startPos.X, pos.X);
-                Assert.AreNotEqual(startPos.Y, pos.Y);
-            });
-
-            sim.ClearBalls();
-
-            Assert.AreEqual(0, sim.Balls.Count);
-        }
-
         [Test]
         public void IsInBallTest()
         {

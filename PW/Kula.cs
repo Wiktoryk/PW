@@ -15,10 +15,10 @@ namespace Dane
         private Pozycja m_poz;
         private Pozycja m_szybkosc;
 
-        private readonly object masa_lock = new();
-        private readonly object promien_lock = new();
-        private readonly object poz_lock = new();
-        private readonly object szybkosc_lock = new();
+        private static readonly object masa_lock = new();
+        private static readonly object promien_lock = new();
+        private static readonly object poz_lock = new();
+        private static readonly object szybkosc_lock = new();
 
         public Kula(long id, double masa, double promien, Pozycja poz, Pozycja szybkosc)
         {
@@ -36,7 +36,7 @@ namespace Dane
 
         public void SetMasa(double mass)
         {
-            lock (this.masa_lock)
+            lock (masa_lock)
             {
                 this.m_masa = mass;
             }
@@ -44,7 +44,7 @@ namespace Dane
 
         public void SetPromien(double radius)
         {
-            lock (this.promien_lock)
+            lock (promien_lock)
             {
                 this.m_promien = radius;
             }
@@ -52,7 +52,7 @@ namespace Dane
 
         public void SetSrednica(double diameter)
         {
-            lock (this.promien_lock)
+            lock (promien_lock)
             {
                 this.m_promien = diameter / 2;
             }
@@ -60,7 +60,7 @@ namespace Dane
 
         public void SetPoz(Pozycja pos)
         {
-            lock (this.poz_lock)
+            lock (poz_lock)
             {
                 this.m_poz = pos;
             }
@@ -68,7 +68,7 @@ namespace Dane
 
         public void SetSzybkosc(Pozycja vel)
         {
-            lock (this.szybkosc_lock)
+            lock (szybkosc_lock)
             {
                 this.m_szybkosc = vel;
             }
@@ -81,7 +81,7 @@ namespace Dane
 
         public double GetMasa()
         {
-            lock (this.masa_lock)
+            lock (masa_lock)
             {
                 return this.m_masa;
             }
@@ -89,7 +89,7 @@ namespace Dane
 
         public double GetPromien()
         {
-            lock (this.promien_lock)
+            lock (promien_lock)
             {
                 return this.m_promien;
             }
@@ -97,7 +97,7 @@ namespace Dane
 
         public double GetSrednica()
         {
-            lock (this.promien_lock)
+            lock (promien_lock)
             {
                 return this.m_promien * 2;
             }
@@ -105,7 +105,7 @@ namespace Dane
 
         public Pozycja GetPoz()
         {
-            lock (this.poz_lock)
+            lock (poz_lock)
             {
                 return this.m_poz;
             }
@@ -113,7 +113,7 @@ namespace Dane
 
         public Pozycja GetSzybkosc()
         {
-            lock (this.szybkosc_lock)
+            lock (szybkosc_lock)
             {
                 return this.m_szybkosc;
             }
@@ -155,7 +155,10 @@ namespace Dane
 
                 TimeSpan elapsed = stopwatch.Elapsed;
                 this.SetPoz(this.GetPoz() + this.GetSzybkosc() * elapsed.TotalSeconds);
-                OnPositionChanged?.Invoke(this, new PositionChangedEventArgs(lastPoz, this.m_szybkosc, elapsed.TotalSeconds));
+                lock (poz_lock)
+                {
+                    OnPositionChanged?.Invoke(this, new PositionChangedEventArgs(lastPoz, this.m_szybkosc, elapsed.TotalSeconds));
+                }
 
                 Pozycja newPoz = this.GetPoz();
                 string message = new StringBuilder("Ball ")

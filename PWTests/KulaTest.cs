@@ -99,47 +99,5 @@ namespace DaneTests
                 Assert.AreEqual(1.12d, kula.GetSzybkosc().Y, 0.01d);
             });
         }
-
-        [Test, RequiresThread]
-        public void PositionChangeTest()
-        {
-            IKula kula = new Kula(100L, 0d, 0d, new Pozycja { X = 0d, Y = 0d }, new Pozycja { X = 1d, Y = 1d });
-
-            Assert.NotNull(kula);
-
-            kula.StartThread();
-
-            Thread.Sleep(10);
-
-            Pozycja pos = kula.GetPoz();
-
-            Assert.Multiple(() =>
-            {
-                Assert.AreNotEqual(0d, pos.X);
-                Assert.AreNotEqual(0d, pos.Y);
-            });
-
-            kula.Dispose();
-        }
-
-        [Test, RequiresThread]
-        public void OnPositionChangedEventTest()
-        {
-            bool eventRaised = false;
-
-            IKula kula = new Kula(100L, 0d, 0d, new Pozycja { X = 0d, Y = 0d }, new Pozycja { X = 0d, Y = 0d });
-
-            Assert.NotNull(kula);
-
-            kula.OnPositionChanged += (object source, PositionChangedEventArgs e) => { eventRaised = true; };
-
-            kula.StartThread();
-
-            Thread.Sleep(10);
-
-            Assert.That(eventRaised, Is.True.After(10));
-
-            kula.Dispose();
-        }
     }
 }

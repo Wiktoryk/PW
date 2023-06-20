@@ -83,7 +83,6 @@ namespace Dane
                         }
                         num--;
                     }
-                    saving = false;
                     hasNewMessages = false;
                 }
             }
