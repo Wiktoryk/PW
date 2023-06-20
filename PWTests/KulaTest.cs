@@ -123,7 +123,7 @@ namespace DaneTests
         }
 
         [Test, RequiresThread]
-        public void OnPositionChangeEventTest()
+        public void OnPositionChangedEventTest()
         {
             bool eventRaised = false;
 

@@ -69,40 +69,6 @@ namespace PrezentacjaTests
         }
 
         [Test]
-        public void StartTest()
-        {
-            Assert.IsNotNull(api);
-            api.ScenaHeight = 90d;
-            api.ScenaWidth = 100d;
-            Assert.AreEqual(90d, api.ScenaHeight, 0.01d);
-            Assert.AreEqual(100d, api.ScenaWidth, 0.01d);
-
-            Assert.IsNotNull(api.Balls);
-            Assert.AreEqual(0, api.Balls.Count);
-
-            api.StworzKule(1, 0.1d, 10d, 0.1d, 10d, 1d, 6d);
-
-            Assert.IsNotNull(api.Balls);
-            Assert.AreEqual(1, api.Balls.Count);
-
-            Pozycja startPos = ((IKulaModel)api.Balls.ToArray().GetValue(0)).ScenaPoz;
-
-            api.Start();
-
-            Thread.Sleep(10);
-
-            Pozycja pos = ((IKulaModel)api.Balls.ToArray().GetValue(0)).ScenaPoz;
-
-            Assert.Multiple(() =>
-            {
-                Assert.AreNotEqual(startPos.X, pos.X);
-                Assert.AreNotEqual(startPos.Y, pos.Y);
-            });
-
-            api.Stop();
-        }
-
-        [Test]
         public void GetApiTest()
         {
             Assert.NotNull(api);

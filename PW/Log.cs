@@ -16,8 +16,9 @@ namespace Dane
         private static uint maxLogFileSizeKB = 256; // in KB
 
         private static readonly Queue<string> messagesToSave = new();
+        private static bool hasNewMessages = false;
 
-        private static Timer saveTaskTimer = null;
+        //private static Timer saveTaskTimer = null;
         private static bool saving = false;
 
         private static async void AddToBuffer(string message)
@@ -27,8 +28,21 @@ namespace Dane
                 lock (messagesToSave)
                 {
                     messagesToSave.Enqueue(message);
+                    hasNewMessages = true;
+                }
+                if (!saving)
+                {
+                    StartSavingThread();
                 }
             });
+        }
+
+        private static void StartSavingThread()
+        {
+            saving = true;
+
+            Thread savingThread = new Thread(SaveTask);
+            savingThread.Start();
         }
 
         private static string GetLogsDirPath()
@@ -44,11 +58,15 @@ namespace Dane
 
         private static void SaveTask()
         {
-            if (!saving)
+            while (true)
             {
-                saving = true;
                 lock (messagesToSave)
                 {
+                    if (!hasNewMessages)
+                    {
+                        saving = false;
+                        return;
+                    }
                     int num = messagesToSave.Count;
                     while (num > 0)
                     {
@@ -65,29 +83,10 @@ namespace Dane
                         }
                         num--;
                     }
+                    saving = false;
+                    hasNewMessages = false;
                 }
-                saving = false;
             }
-
-            /*if (!saving)
-            {
-                saving = true;
-                lock (messagesToSave)
-                {
-                    if (messagesToSave.Count > 0)
-                    {
-                        FileInfo logFileInfo = new(GetLogFilePath());
-                        using (StreamWriter writer = new(logFileInfo.Create()))
-                        {
-                            while (messagesToSave.Count > 0)
-                            {
-                                writer.WriteLine(messagesToSave.Dequeue());
-                            }
-                        }
-                    }
-                }
-                saving = false;
-            }*/
         }
 
         public static void StartLogging()
@@ -97,16 +96,15 @@ namespace Dane
             {
                 directoryInfo.Create();
             }
-            // Dla drugiej wersji zakomentuj 2 linijki
             FileInfo logFileInfo = new(GetLogFilePath());
             logFileInfo.Create().Close();
-            saveTaskTimer = new(new TimerCallback((obj) => { SaveTask(); }), null, 0, 1000);
+            //saveTaskTimer = new(new TimerCallback((obj) => { SaveTask(); }), null, 0, 1000);
         }
 
-        public static void StopLogging()
-        {
-            saveTaskTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        }
+        //public static void StopLogging()
+        //{
+            //saveTaskTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        //}
 
         public static void Log(string message, LogType type)
         {
