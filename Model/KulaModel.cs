@@ -34,7 +34,7 @@ namespace Model
             }
         }
 
-        public KulaModel(IKula ball)//, Brush? color)
+        public KulaModel(IKula ball)
         {
             this.ball = ball;
             this.ball.OnPositionChanged += BallPositionUpdate;

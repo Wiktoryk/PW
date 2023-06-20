@@ -5,8 +5,8 @@
         private double m_width;
         private double m_height;
 
-        private object width_lock = new();
-        private object height_lock = new();
+        private static object width_lock = new();
+        private static object height_lock = new();
 
         public Scena(double width, double height)
         {

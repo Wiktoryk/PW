@@ -173,7 +173,6 @@ namespace Logika
                             ball.SetPoz(lastPos);
                             Pozycja newPos2 = lastPos2 + vel2 * tcmin;
                             b.SetPoz(newPos2);
-                            //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
                             (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, ball.GetMasa(), vel2, b.GetMasa());
                             ball.SetSzybkosc(lastVel);
                             b.SetSzybkosc(vel2);
@@ -188,7 +187,6 @@ namespace Logika
                             ball.SetPoz(lastPos);
                             Pozycja newPos2 = lastPos2 + vel2 * tcmin;
                             b.SetPoz(newPos2);
-                            //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
                             (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, ball.GetMasa(), vel2, b.GetMasa());
                             ball.SetSzybkosc(lastVel);
                             b.SetSzybkosc(vel2);
@@ -204,7 +202,6 @@ namespace Logika
                         ball.SetPoz(lastPos);
                         Pozycja newPos2 = lastPos2 + vel2 * tcmin;
                         b.SetPoz(newPos2);
-                        //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
                         (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, ball.GetMasa(), vel2, b.GetMasa());
                         ball.SetSzybkosc(lastVel);
                         b.SetSzybkosc(vel2);
@@ -219,7 +216,6 @@ namespace Logika
                         ball.SetPoz(lastPos);
                         Pozycja newPos2 = lastPos2 + vel2 * tcmax;
                         b.SetPoz(newPos2);
-                        //(lastVel, vel2) = CollisionManager.VelocitiesAfterBallsCollision(lastVel, ball.GetMass(), lastPos, vel2, b.GetMass(), newPos2);
                         (lastVel, vel2) = CollisionManager.VelocitiesAfterCollision(lastVel, ball.GetMasa(), vel2, b.GetMasa());
                         ball.SetSzybkosc(lastVel);
                         b.SetSzybkosc(vel2);

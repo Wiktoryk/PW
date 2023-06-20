@@ -45,7 +45,7 @@ namespace Model
             this._balls = new ObservableCollection<IKulaModel>();
             foreach (IKula ball in this.logika.Balls)
             {
-                this._balls.Add(new KulaModel(ball));//, color));
+                this._balls.Add(new KulaModel(ball));
             }
         }
 

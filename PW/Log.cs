@@ -18,7 +18,6 @@ namespace Dane
         private static readonly Queue<string> messagesToSave = new();
         private static bool hasNewMessages = false;
 
-        //private static Timer saveTaskTimer = null;
         private static bool saving = false;
 
         private static async void AddToBuffer(string message)
@@ -97,13 +96,8 @@ namespace Dane
             }
             FileInfo logFileInfo = new(GetLogFilePath());
             logFileInfo.Create().Close();
-            //saveTaskTimer = new(new TimerCallback((obj) => { SaveTask(); }), null, 0, 1000);
         }
 
-        //public static void StopLogging()
-        //{
-            //saveTaskTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        //}
 
         public static void Log(string message, LogType type)
         {
